@@ -115,7 +115,7 @@ const Report = ({
             setSortValue(response.data.sort === true ? "true" : "false");
           }
         } catch (error) {
-          messageApi.error("Томьёоны мэдээлэл ачааллахад алдаа гарлаа");
+          messageApi.error("Томьёоны мэдээлэл татаж чадсангүй.");
         } finally {
           setLoading(false);
         }
