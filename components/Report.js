@@ -334,6 +334,9 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     { label: "Work-life balance", value: 230 },
     { label: "Сэтгэл түгшилт", value: 240 },
     { label: "Work stress", value: 250 },
+    { label: "Mindset", value: 260 },
+    { label: "Жирэмсэн", value: 270 },
+    { label: "WHO-5", value: 280 },
   ];
 
   const handleReportTypeChange = (value) => {
