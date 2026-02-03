@@ -182,19 +182,21 @@ const FormulaExample = ({
                           const isInLimit =
                             !limitEnabled || !limit || index < limit;
 
-                          // Get interval label based on configuration type
+                          // Get interval label ONLY if resultConfig is saved
                           let intervalLabel = null;
                           if (
-                            resultConfig?.type === "single" &&
-                            resultConfig?.intervals
+                            resultConfig &&
+                            resultConfig.type === "single" &&
+                            resultConfig.intervals
                           ) {
                             intervalLabel = getIntervalLabel(
                               value,
                               resultConfig.intervals
                             );
                           } else if (
-                            resultConfig?.type === "grouped" &&
-                            resultConfig?.groupIntervals
+                            resultConfig &&
+                            resultConfig.type === "grouped" &&
+                            resultConfig.groupIntervals
                           ) {
                             intervalLabel = getGroupIntervalLabel(
                               value,
@@ -239,6 +241,47 @@ const FormulaExample = ({
             </div>
           )}
         </div>
+
+        {/* {resultConfig && resultConfig.type !== "byCategory" && (
+          <>
+            <Divider className="my-6!" />
+            <div>
+              <div className="font-semibold mb-3">📊 Бүлгээр</div>
+              <div className="space-y-2">
+                {Object.entries(formattedResults.grouped || {})
+                  .slice(0, 3)
+                  .map(([groupName, groupData]) => (
+                    <div
+                      key={groupName}
+                      className="text-xs bg-gray-50 p-2 rounded"
+                    >
+                      <div className="font-medium mb-1">{groupName}</div>
+                      <div className="text-gray-600">
+                        Нийт: {groupData.count} | Асуулт:{" "}
+                        {groupData.questionCount || 0}
+                      </div>
+                    </div>
+                  ))}
+                {Object.keys(formattedResults.grouped || {}).length > 3 && (
+                  <div className="text-xs text-gray-500">
+                    ... болон {Object.keys(formattedResults.grouped).length - 3}{" "}
+                    бүлэг
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )} */}
+
+        {/* Show note when in byCategory mode AND config is saved */}
+        {resultConfig && resultConfig.type === "byCategory" && (
+          <>
+            <Divider className="my-6!" />
+            <div className="text-xs text-gray-500 italic">
+              Бүх ангиллын үр дүн "Үр дүн тохируулах" хэсэгт харагдаж байна
+            </div>
+          </>
+        )}
       </div>
     );
   };

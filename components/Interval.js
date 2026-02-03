@@ -12,7 +12,11 @@ import {
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { calculateMinMaxValues } from "./Demo";
 import { PlusIcon } from "./Icons";
-import { GlobalBoldDuotone, TrashBin2BoldDuotone } from "solar-icons";
+import {
+  GlobalBoldDuotone,
+  InfoCircleBoldDuotone,
+  TrashBin2BoldDuotone,
+} from "solar-icons";
 
 const ResultConfiguration = ({
   assessmentData,
@@ -458,6 +462,11 @@ const ResultConfiguration = ({
               {isSingleResult && (
                 <Radio value="single" disabled={!canCreateIntervals()}>
                   Интервалд хуваах
+                  {!canCreateIntervals() && (
+                    <span className="text-xs text-gray-400 ml-2">
+                      (min = max)
+                    </span>
+                  )}
                 </Radio>
               )}
               {isGroupedResult && (
@@ -468,6 +477,11 @@ const ResultConfiguration = ({
                     disabled={!canCreateGroupedIntervals()}
                   >
                     Бүлгээр нь интервалд хуваах
+                    {!canCreateGroupedIntervals() && (
+                      <span className="text-xs text-gray-400 ml-2">
+                        (min = max)
+                      </span>
+                    )}
                   </Radio>
                 </>
               )}
@@ -546,6 +560,27 @@ const ResultConfiguration = ({
             </div>
           </Card>
         )}
+
+        {/* {configurationType === "byCategory" && (
+          <Card>
+            <div className="font-medium mb-3">Ангилал тус бүрээр үр дүн</div>
+            <div className="space-y-1">
+              {getAllGroupsWithValues().map(
+                ({ groupName, value, isInLimit }) => (
+                  <div key={groupName} className="flex justify-between">
+                    <span className={isInLimit ? "font-bold" : ""}>
+                      {groupName}:
+                    </span>
+                    <span className={isInLimit ? "font-bold text-main" : ""}>
+                      {value}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          </Card>
+        )} */}
+
         {/* Grouped Interval Configuration */}
         {configurationType === "grouped" && formattedResults?.grouped && (
           <Card>
@@ -564,13 +599,15 @@ const ResultConfiguration = ({
             </div>
 
             {!canUseUniformIntervals() && (
-              <Alert
-                message="Бүлгүүд өөр өөр min/max утгатай байна"
-                description="Тиймээс бүлэг бүрт тусад нь интервал тохируулна"
-                type="warning"
-                showIcon
-                className="mb-3"
-              />
+              <div className="bg-yellow-100 p-3 pl-2/5 pr-5 rounded-xl border border-yellow-400 mb-3 flex gap-2">
+                <InfoCircleBoldDuotone
+                  width={18}
+                  height={18}
+                  className="text-yellow-600 min-w-[18px] mt-0.5"
+                />
+                Бүлгүүд нь өөр өөр их, бага утгатай байгаа тул тус бүрд нь
+                интервалд хуваана уу.
+              </div>
             )}
 
             {useUniformIntervals ? (
@@ -774,6 +811,30 @@ const ResultConfiguration = ({
             )}
           </Card>
         )}
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2 mt-4">
+          {resultConfig && resultConfig.type !== "none" && (
+            <Button
+              onClick={() => {
+                setResultConfig(null);
+                setConfigurationType("none");
+                setIntervals([]);
+                setGroupIntervals({});
+              }}
+              danger
+            >
+              Устгах
+            </Button>
+          )}
+          <Button
+            type="primary"
+            onClick={saveConfiguration}
+            disabled={!isValid || configurationType === "none"}
+            className="the-btn"
+          >
+            Хадгалах
+          </Button>
+        </div>
       </div>
     </Card>
   );
