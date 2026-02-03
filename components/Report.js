@@ -57,12 +57,12 @@ const Report = ({
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState(
-    assessmentData?.data?.report || null
+    assessmentData?.data?.report || null,
   );
   const [hasFormula, setHasFormula] = useState(!!assessmentData?.data?.formule);
   const [resultConfig, setResultConfig] = useState(null);
   const [hasReport, setHasReport] = useState(
-    !!assessmentData?.data?.exampleReport
+    !!assessmentData?.data?.exampleReport,
   );
 
   const [uploading, setUploading] = useState(false);
@@ -85,7 +85,7 @@ const Report = ({
                 response.data.aggregations.map((agg) => ({
                   field: agg.field,
                   operation: agg.operation.toLowerCase(),
-                }))
+                })),
               );
             } else {
               setAggregations([{ field: "point", operation: "sum" }]);
@@ -97,7 +97,7 @@ const Report = ({
                 filterEntries.map(([field, value]) => ({
                   field,
                   value,
-                }))
+                })),
               );
             } else {
               setFilters([]);
@@ -146,7 +146,7 @@ const Report = ({
       sortValue,
       limitEnabled,
       limitValue,
-      assessmentQuestions
+      assessmentQuestions,
     );
   }, [
     demoData,
@@ -292,7 +292,7 @@ const Report = ({
           assessmentData.data.id,
           {
             exampleReport: null,
-          }
+          },
         );
 
         if (updateResponse?.success) {
@@ -375,6 +375,7 @@ const Report = ({
     { label: "Mindset", value: 260 },
     { label: "Жирэмсэн", value: 270 },
     { label: "WHO-5", value: 280 },
+    { label: "RSES", value: 290 },
   ];
 
   const handleReportTypeChange = (value) => {
@@ -423,7 +424,7 @@ const Report = ({
               {
                 formule: response.data,
                 report: reportType,
-              }
+              },
             );
 
             if (updateResponse?.success) {
@@ -439,7 +440,7 @@ const Report = ({
               });
             } else {
               messageApi.warning(
-                "Томьёо үүссэн боловч хадгалахад алдаа гарлаа."
+                "Томьёо үүссэн боловч хадгалахад алдаа гарлаа.",
               );
             }
           } catch (error) {
@@ -548,7 +549,7 @@ const Report = ({
                           <TagLineDuotone width={14} />
                           {category.name}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 )}
@@ -571,10 +572,10 @@ const Report = ({
                           <Switch
                             size="small"
                             checked={groupByEnabled.includes(
-                              "answerCategoryId"
+                              "answerCategoryId",
                             )}
                             disabled={groupByEnabled.includes(
-                              "questionCategoryId"
+                              "questionCategoryId",
                             )}
                             onChange={(checked) => {
                               setGroupByEnabled((prev) => {
@@ -584,7 +585,7 @@ const Report = ({
                                     : [...prev, "answerCategoryId"];
                                 } else {
                                   return prev.filter(
-                                    (g) => g !== "answerCategoryId"
+                                    (g) => g !== "answerCategoryId",
                                   );
                                 }
                               });
@@ -598,10 +599,10 @@ const Report = ({
                           <Switch
                             size="small"
                             checked={groupByEnabled.includes(
-                              "questionCategoryId"
+                              "questionCategoryId",
                             )}
                             disabled={groupByEnabled.includes(
-                              "answerCategoryId"
+                              "answerCategoryId",
                             )}
                             onChange={(checked) => {
                               setGroupByEnabled((prev) => {
@@ -611,7 +612,7 @@ const Report = ({
                                     : [...prev, "questionCategoryId"];
                                 } else {
                                   return prev.filter(
-                                    (g) => g !== "questionCategoryId"
+                                    (g) => g !== "questionCategoryId",
                                   );
                                 }
                               });
