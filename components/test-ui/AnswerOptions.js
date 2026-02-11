@@ -379,7 +379,7 @@ const AnswerOptions = ({
       <div className="w-[80%]">
         <Input disabled placeholder="Хариулт бичих хэсэг" />
       </div>
-      <InputNumber
+      {/* <InputNumber
         min={0}
         value={question.question?.minValue || 0}
         onChange={(value) =>
@@ -391,7 +391,7 @@ const AnswerOptions = ({
           })
         }
         className="w-full h-[30px]"
-      />
+      /> */}
     </div>
   );
 
@@ -403,7 +403,7 @@ const AnswerOptions = ({
       if (!question.question?.slider) {
         return Array.from({ length: max - min + 1 }, (_, i) => i + min).reduce(
           (acc, num) => ({ ...acc, [Number(num)]: String(num) }),
-          {}
+          {},
         );
       }
 
@@ -413,7 +413,7 @@ const AnswerOptions = ({
           ...acc,
           [Number(min + idx)]: label,
         }),
-        {}
+        {},
       );
     };
 
@@ -464,7 +464,7 @@ const AnswerOptions = ({
       if (!question.question?.slider) {
         return Array.from({ length: max - min + 1 }, (_, i) => i + min).reduce(
           (acc, num) => ({ ...acc, [Number(num)]: String(num) }),
-          {}
+          {},
         );
       }
 
@@ -474,7 +474,7 @@ const AnswerOptions = ({
           ...acc,
           [Number(min + idx)]: label,
         }),
-        {}
+        {},
       );
     };
 
