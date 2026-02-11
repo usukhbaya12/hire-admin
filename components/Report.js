@@ -50,11 +50,11 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState(
-    assessmentData?.data?.report || null
+    assessmentData?.data?.report || null,
   );
   const [hasFormula, setHasFormula] = useState(!!assessmentData?.data?.formule);
   const [hasReport, setHasReport] = useState(
-    !!assessmentData?.data?.exampleReport
+    !!assessmentData?.data?.exampleReport,
   );
 
   const [uploading, setUploading] = useState(false);
@@ -77,7 +77,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                 response.data.aggregations.map((agg) => ({
                   field: agg.field,
                   operation: agg.operation.toLowerCase(),
-                }))
+                })),
               );
             } else {
               setAggregations([{ field: "point", operation: "sum" }]);
@@ -89,7 +89,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                 filterEntries.map(([field, value]) => ({
                   field,
                   value,
-                }))
+                })),
               );
             } else {
               setFilters([]);
@@ -254,7 +254,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
           assessmentData.data.id,
           {
             exampleReport: null,
-          }
+          },
         );
 
         if (updateResponse?.success) {
@@ -337,6 +337,8 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     { label: "Mindset", value: 260 },
     { label: "Жирэмсэн", value: 270 },
     { label: "WHO-5", value: 280 },
+    { label: "RSES", value: 290 },
+    { label: "СЭМҮТ", value: 300 },
   ];
 
   const handleReportTypeChange = (value) => {
@@ -385,7 +387,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
               {
                 formule: response.data,
                 report: reportType,
-              }
+              },
             );
 
             if (updateResponse?.success) {
@@ -401,7 +403,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
               });
             } else {
               messageApi.warning(
-                "Томьёо үүссэн боловч хадгалахад алдаа гарлаа."
+                "Томьёо үүссэн боловч хадгалахад алдаа гарлаа.",
               );
             }
           } catch (error) {
@@ -497,7 +499,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                           <TagLineDuotone width={14} />
                           {category.name}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 )}
@@ -520,10 +522,10 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                           <Switch
                             size="small"
                             checked={groupByEnabled.includes(
-                              "answerCategoryId"
+                              "answerCategoryId",
                             )}
                             disabled={groupByEnabled.includes(
-                              "questionCategoryId"
+                              "questionCategoryId",
                             )}
                             onChange={(checked) => {
                               setGroupByEnabled((prev) => {
@@ -533,7 +535,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                                     : [...prev, "answerCategoryId"];
                                 } else {
                                   return prev.filter(
-                                    (g) => g !== "answerCategoryId"
+                                    (g) => g !== "answerCategoryId",
                                   );
                                 }
                               });
@@ -547,10 +549,10 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                           <Switch
                             size="small"
                             checked={groupByEnabled.includes(
-                              "questionCategoryId"
+                              "questionCategoryId",
                             )}
                             disabled={groupByEnabled.includes(
-                              "answerCategoryId"
+                              "answerCategoryId",
                             )}
                             onChange={(checked) => {
                               setGroupByEnabled((prev) => {
@@ -560,7 +562,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                                     : [...prev, "questionCategoryId"];
                                 } else {
                                   return prev.filter(
-                                    (g) => g !== "questionCategoryId"
+                                    (g) => g !== "questionCategoryId",
                                   );
                                 }
                               });
