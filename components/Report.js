@@ -376,6 +376,7 @@ const Report = ({
     { label: "Жирэмсэн", value: 270 },
     { label: "WHO-5", value: 280 },
     { label: "RSES", value: 290 },
+    { label: "СЭМҮТ", value: 300 },
   ];
 
   const handleReportTypeChange = (value) => {
