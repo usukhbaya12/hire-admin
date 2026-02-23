@@ -439,7 +439,8 @@ const Results = () => {
       key: "action",
       render: (_, record) =>
         record.userEndDate &&
-        record.result && (
+        // record.result && (
+         (
           <Tooltip title="Тайлан татах">
             <Link href={`/api/report/${record.code}`} target="_blank" passHref>
               <button className="cursor-pointer mx-auto text-main hover:text-secondary flex items-center gap-2 font-semibold">
