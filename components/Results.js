@@ -47,7 +47,7 @@ const Results = () => {
   const fetchAssessments = async () => {
     try {
       const response = await getAssessments({
-        limit: 300,
+        limit: 10,
         page: 1,
       });
       if (response.success) {
