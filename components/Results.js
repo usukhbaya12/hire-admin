@@ -65,7 +65,7 @@ const Results = () => {
   const fetchResults = async (
     page = 1,
     size = pageSize,
-    search = searchTerm
+    search = searchTerm,
   ) => {
     try {
       setLoading(true);
@@ -82,7 +82,7 @@ const Results = () => {
         page,
         search,
         startDateStr,
-        endDateStr
+        endDateStr,
       );
 
       if (response.success) {
@@ -91,7 +91,7 @@ const Results = () => {
         setCurrentPage(page);
       } else {
         messageApi.error(
-          response.message || "Сервертэй холбогдоход алдаа гарлаа."
+          response.message || "Сервертэй холбогдоход алдаа гарлаа.",
         );
       }
     } catch (error) {
@@ -173,13 +173,13 @@ const Results = () => {
         Төлөв: record.userEndDate
           ? "Дууссан"
           : record.userStartDate && !record.userEndDate
-          ? "Эхэлсэн"
-          : "Өгөөгүй",
+            ? "Эхэлсэн"
+            : "Өгөөгүй",
 
         "Үр дүн":
           record.assessment.type === 10 || record.assessment.type === 11
             ? `${((record.result?.point / record.result?.total) * 100).toFixed(
-                1
+                1,
               )}%`
             : record.result?.result,
 
@@ -438,11 +438,15 @@ const Results = () => {
       title: "Тайлан",
       key: "action",
       render: (_, record) =>
-        record.userEndDate &&
-        // record.result && (
-         (
+        record.userEndDate && (
+          // record.result && (
           <Tooltip title="Тайлан татах">
-            <Link href={`/api/report/${record.code}`} target="_blank" passHref>
+            <Link
+              href={`/api/report/${record.code}`}
+              prefetch={false}
+              target="_blank"
+              passHref
+            >
               <button className="cursor-pointer mx-auto text-main hover:text-secondary flex items-center gap-2 font-semibold">
                 <ClipboardTextBoldDuotone width={18} />
                 Татах
