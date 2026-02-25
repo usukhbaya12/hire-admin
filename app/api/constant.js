@@ -30,6 +30,8 @@ export const handlePasswordChange = async (data) => {
   }
 };
 
+//d
+
 export async function imageUploader(images) {
   try {
     const token = await getAuthToken();
@@ -305,7 +307,7 @@ export const getAssessmentExams = async (
   page = 1,
   email = "",
   startDate = null,
-  endDate = null
+  endDate = null,
 ) => {
   try {
     const token = await getAuthToken();
@@ -329,7 +331,7 @@ export const getAssessmentExams = async (
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     ).then((d) => d.json());
 
     return {
@@ -400,7 +402,7 @@ export const getPaymentHistory = async (
   role,
   assessmentId,
   method,
-  assessmentName
+  assessmentName,
 ) => {
   const token = await getAuthToken();
   if (!token) return { token: false };
