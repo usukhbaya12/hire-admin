@@ -61,7 +61,7 @@ export const Block = ({
       }),
       Image.configure({
         HTMLAttributes: {
-          class: "h-[150px] object-cover rounded transition-all",
+          class: "w-full object-cover rounded transition-all",
           "data-selected": "false",
         },
         selectable: true,
@@ -90,7 +90,7 @@ export const Block = ({
             const from = parentOffset;
             const to = parentOffset + node.nodeSize;
             const transaction = view.state.tr.setSelection(
-              view.state.selection.constructor.create(view.state.doc, from, to)
+              view.state.selection.constructor.create(view.state.doc, from, to),
             );
             view.dispatch(transaction);
           }
@@ -233,7 +233,7 @@ export const Block = ({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event) => {
@@ -244,7 +244,7 @@ export const Block = ({
       const newIndex = block.questions.findIndex((q) => q.id === over.id);
 
       const newQuestions = arrayMove(block.questions, oldIndex, newIndex).map(
-        (q, index) => ({ ...q, order: index + 1 })
+        (q, index) => ({ ...q, order: index + 1 }),
       );
 
       onUpdateBlock(block.id, { questions: newQuestions });
