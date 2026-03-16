@@ -339,6 +339,8 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     { label: "WHO-5", value: 280 },
     { label: "RSES", value: 290 },
     { label: "СЭМҮТ", value: 300 },
+    { label: "Никотин", value: 310 },
+    { label: "Архи", value: 320 },
   ];
 
   const handleReportTypeChange = (value) => {
