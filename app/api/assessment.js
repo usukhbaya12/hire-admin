@@ -97,6 +97,56 @@ export const getAssessments = async ({
   }
 };
 
+export const getAssessmentsNew = async ({
+  limit = 10,
+  page = 1,
+  type,
+  status,
+  name,
+  category,
+  createdUser,
+  sortBy = "createdAt",
+  sortDir = "DESC",
+} = {}) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+
+  try {
+    const params = new URLSearchParams();
+    params.append("limit", limit);
+    params.append("page", page);
+    params.append("sortBy", sortBy);
+    params.append("sortDir", sortDir);
+    if (type) params.append("type", type);
+    if (status) params.append("status", status);
+    if (name) params.append("name", name);
+    if (category) params.append("category", category);
+    if (createdUser) params.append("createdUser", createdUser);
+
+    const res = await fetch(`${api}assessment/new?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
 export const getAssessmentCategory = async () => {
   try {
     const res = await fetch(`${api}assessmentCategory`, {
