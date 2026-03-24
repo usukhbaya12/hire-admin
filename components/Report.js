@@ -341,6 +341,8 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     { label: "СЭМҮТ", value: 300 },
     { label: "Никотин", value: 310 },
     { label: "Архи", value: 320 },
+    { label: "Нойргүйдэл", value: 330 },
+    { label: "Өөртөө итгэх итгэл", value: 340 },
   ];
 
   const handleReportTypeChange = (value) => {
