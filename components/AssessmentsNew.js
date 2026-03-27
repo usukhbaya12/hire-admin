@@ -18,6 +18,7 @@ import {
   UserRoundedLineDuotone,
   CalendarLineDuotone,
   DocumentTextLineDuotone,
+  NotesBoldDuotone,
 } from "solar-icons";
 import { getAssessmentsNew } from "@/app/api/assessment";
 
@@ -448,29 +449,31 @@ export default function TestsPageClient({
   const to = Math.min(pagination.page * pagination.limit, pagination.total);
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="px-5 py-6">
       <div className="mx-auto max-w-7xl">
-        <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow shadow-slate-200">
           <div className="relative p-6 sm:p-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(15,23,42,0.05),_transparent_35%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(243,100,33,0.15),_transparent_35%)]" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500">
-                  Assessment hub
-                </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                  Тестүүд
+                <NotesBoldDuotone
+                  className="text-main"
+                  width={32}
+                  height={32}
+                />
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-gray-700 sm:text-3xl">
+                  Тестийн сан
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                {/* <p className="mt-2 max-w-2xl leading-6 text-slate-500">
                   Тест, үнэлгээ, ангилал болон шинэчлэлтийг нэг дороос цэвэрхэн
                   удирдах хуудас.
-                </p>
+                </p> */}
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => router.push("/test/new")}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-main px-4 font-medium text-white transition hover:bg-slate-800"
                 >
                   <AddCircleBoldDuotone width={18} />
                   Тест үүсгэх
@@ -480,7 +483,7 @@ export default function TestsPageClient({
           </div>
         </section>
 
-        <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Нийт тест"
             value={stats.total}
@@ -501,7 +504,7 @@ export default function TestsPageClient({
             value={stats.archived}
             icon={<ArchiveMinimalisticBoldDuotone width={20} />}
           />
-        </section>
+        </section> */}
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">

@@ -34,7 +34,7 @@ export default async function AssessmentPage() {
         <Header />
       </div>
 
-      <div className="flex mt-[63px]">
+      <div className="flex">
         <div className="fixed">
           <Menu />
         </div>
