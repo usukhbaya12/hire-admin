@@ -105,7 +105,7 @@ export const getAssessmentsNew = async ({
   name,
   category,
   createdUser,
-  sortBy = "createdAt",
+  sortBy = "updatedAt",
   sortDir = "DESC",
 } = {}) => {
   const token = await getAuthToken();
@@ -113,15 +113,16 @@ export const getAssessmentsNew = async ({
 
   try {
     const params = new URLSearchParams();
-    params.append("limit", limit);
-    params.append("page", page);
+    params.append("limit", String(limit));
+    params.append("page", String(page));
     params.append("sortBy", sortBy);
     params.append("sortDir", sortDir);
-    if (type) params.append("type", type);
-    if (status) params.append("status", status);
+
+    if (type) params.append("type", String(type));
+    if (status) params.append("status", String(status));
     if (name) params.append("name", name);
-    if (category) params.append("category", category);
-    if (createdUser) params.append("createdUser", createdUser);
+    if (category) params.append("category", String(category));
+    if (createdUser) params.append("createdUser", String(createdUser));
 
     const res = await fetch(`${api}assessment/new?${params.toString()}`, {
       method: "GET",
@@ -129,6 +130,7 @@ export const getAssessmentsNew = async ({
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     }).then((d) => d.json());
 
     return {
