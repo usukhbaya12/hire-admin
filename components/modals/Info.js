@@ -1,34 +1,39 @@
-import { Modal, Button } from "antd";
-import { ShieldBoldDuotone } from "solar-icons";
+"use client";
 
-const InfoModal = ({ open, onOk, onCancel, text }) => {
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogTitle,
+  AlertDialogMedia,
+} from "@/components/ui/alert-dialog";
+import { ShieldBoldDuotone, TrashBin2BoldDuotone } from "solar-icons";
+
+const InfoModal = ({ open, onOk, onCancel, text, title }) => {
   return (
-    <Modal
-      width="420px"
-      //title="Анхааруулга"
-      open={open}
-      onOk={onOk}
-      onCancel={onCancel}
-      footer={null}
-    >
-      <div className="text-main flex justify-center pt-6">
-        <ShieldBoldDuotone width={60} height={60} />
-      </div>
-      <p className="pt-4 pb-2 text-center leading-5">{text}</p>
-      <div className="flex gap-3 justify-end mt-6">
-        <Button className="back-btn" onClick={onCancel}>
-          Буцах
-        </Button>
-        <Button
-          onClick={onOk}
-          className="the-btn"
-          htmlType="submit"
-          type="primary"
-        >
-          Тийм
-        </Button>
-      </div>
-    </Modal>
+    <AlertDialog open={open}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+            <TrashBin2BoldDuotone />
+          </AlertDialogMedia>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{text}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel variant="outline" onClick={onCancel}>
+            Буцах
+          </AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onOk}>
+            Устгах
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 

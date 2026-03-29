@@ -30,10 +30,6 @@ export default async function AssessmentPage() {
 
   return (
     <>
-      <div className="fixed w-full top-0 z-10 bg-white">
-        <Header />
-      </div>
-
       <div className="flex">
         <div className="fixed">
           <Menu />

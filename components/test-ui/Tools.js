@@ -21,7 +21,7 @@ export const Tools = ({
 }) => {
   const selectedBlock = blocks.find((b) => b.id === selection.blockId);
   const selectedQuestion = selectedBlock?.questions.find(
-    (q) => q.id === selection.questionId
+    (q) => q.id === selection.questionId,
   );
 
   return (
@@ -91,7 +91,7 @@ const QuestionSettings = ({ question, onUpdate }) => {
                   category: null,
                   correct: false,
                 },
-              })
+              }),
             ),
           ]
         : currentAnswers.slice(0, value);
@@ -119,8 +119,8 @@ const QuestionSettings = ({ question, onUpdate }) => {
                   question.type === QUESTION_TYPES.SLIDERSINGLE
                     ? 1
                     : typeof question.id === "string"
-                    ? 2
-                    : question.answers?.length
+                      ? 2
+                      : question.answers?.length
                 }
                 max={question.type === QUESTION_TYPES.SLIDERSINGLE ? 1 : 100}
                 value={question.answers?.length || 4}
@@ -362,7 +362,7 @@ const ConstantSumSettings = ({ question, onUpdate }) => (
                           orderNumber: i,
                           category: null,
                         },
-                      }
+                      },
                   );
                   onUpdate(question.id, {
                     answers: newAnswers,
@@ -482,6 +482,7 @@ const BlockSettings = ({
           onUpdateAssessment({ hasAnswerCategory: true });
         }}
         text="Хариултын ангиллууд устгах гэж байна. Итгэлтэй байна уу?"
+        title="Хариултын ангилал устгах"
       />
 
       <div className="gap-2 flex items-center px-8">
@@ -536,7 +537,7 @@ const BlockSettings = ({
                             />
                             {category.name}
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   </div>

@@ -4,78 +4,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
-import { Dropdown, Tag } from "antd";
 import {
   KeyBoldDuotone,
   LetterBoldDuotone,
   Login3BoldDuotone,
+  UserIdBoldDuotone,
+  UserIdLineDuotone,
 } from "solar-icons";
 import { DropdownIcon } from "./Icons";
 import PasswordModal from "./modals/Password";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 
 const Header = () => {
   const { data: session } = useSession();
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
 
-  const items = [
-    {
-      key: "userInfo",
-      label: (
-        <div className="p-1 rounded-lg">
-          <div className="text-gray-800 flex items-center gap-1.5 mb-1 font-semibold">
-            <LetterBoldDuotone width={16} height={16} />
-            {session?.user?.email}
-          </div>
-          <Tag
-            color="blue"
-            className="rounded-full! shadow shadow-slate-200 font-semibold px-3 py-0.5"
-          >
-            {session?.user?.role === 10
-              ? "Супер админ"
-              : session?.user?.role === 40
-              ? "Админ"
-              : "Тестийн админ"}
-          </Tag>
-        </div>
-      ),
-      disabled: true,
-    },
-    { type: "divider" },
-    {
-      key: "changePassword",
-      label: (
-        <div
-          onClick={() => setIsPasswordModalVisible(true)}
-          className="cursor-pointer font-medium flex items-center gap-2 hover:text-main transition-colors"
-        >
-          <KeyBoldDuotone width={18} height={18} />
-          Нууц үг солих
-        </div>
-      ),
-    },
-    {
-      key: "signout",
-      label: (
-        <div
-          onClick={() => {
-            signOut({ callbackUrl: "/auth/signin" });
-          }}
-          className="text-red-500 cursor-pointer font-medium flex items-center gap-2 hover:text-red-600 transition-colors"
-        >
-          <Login3BoldDuotone width={18} height={18} />
-          Гарах
-        </div>
-      ),
-    },
-  ];
+  const roleLabel =
+    session?.user?.role === 10
+      ? "Супер админ"
+      : session?.user?.role === 40
+        ? "Админ"
+        : "Тестийн админ";
 
   return (
     <>
-      <header
-        className={`sticky top-0 z-50 bg-white border-b border-neutral transition-shadow duration-300`}
-      >
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -translate-y-1/2 rotate-[-30deg] opacity-50 text-gray-400 whitespace-nowrap text-lg font-semibold tracking-widest">
+      <header className="sticky top-0 z-50 border-b border-neutral bg-white transition-shadow duration-300">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -translate-y-1/2 rotate-[-30deg] whitespace-nowrap text-lg font-semibold tracking-widest text-gray-400 opacity-50">
             {Array.from({ length: 200 }).map((_, i) => (
               <div key={i} className="mb-12">
                 ТЕСТ&nbsp;&nbsp;&nbsp;ТЕСТ&nbsp;&nbsp;&nbsp;ТЕСТ&nbsp;&nbsp;&nbsp;ТЕСТ
@@ -90,57 +53,87 @@ const Header = () => {
             ))}
           </div>
         </div>
-        <div className="px-9 mx-auto py-3 flex items-center justify-between">
+
+        <div className="mx-auto flex items-center justify-between px-9 py-3">
           <div className="flex items-center gap-8">
-            <Link href={"/"} className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Image src="/hire-2.png" width={80} height={24} alt="Hire Logo" />
-              <p className="font-black text-xl bg-main text-white px-1.5">
+              <p className="bg-main px-1.5 text-xl font-black text-white">
                 ТЕСТ
               </p>
             </Link>
-
-            {/* <nav className="hidden md:flex items-center space-x-1">
-              <Link
-                href="/"
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  pathname === "/"
-                    ? "text-main bg-main/5"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <HomeBoldDuotone width={18} height={18} />
-                  <span>Хянах самбар</span>
-                </div>
-              </Link>
-            </nav> */}
           </div>
 
           <div className="flex items-center gap-4">
-            <Dropdown
-              menu={{ items }}
-              trigger={["click"]}
-              placement="bottomRight"
-              arrow
-              dropdownRender={(menu) => <div>{menu}</div>}
-            >
-              <div className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-full hover:bg-gray-50 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-main/30 flex items-center justify-center">
-                  <span className="text-main font-extrabold text-lg">
-                    {session?.user?.name?.[0]}
-                  </span>
-                </div>
-                <div className="hidden sm:block">
-                  <div className="font-bold text-gray-800">
-                    {session?.user?.name}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-auto rounded-full px-2 py-1.5 hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-main/30">
+                      <span className="text-main text-lg font-extrabold">
+                        {session?.user?.name?.[0]}
+                      </span>
+                    </div>
+
+                    <div className="hidden sm:block">
+                      <div className="font-bold text-gray-800">
+                        {session?.user?.name}
+                      </div>
+                    </div>
+
+                    <DropdownIcon width={15} height={15} color="#94a3b8" />
                   </div>
-                </div>
-                <DropdownIcon width={15} height={15} color={"#94a3b8"} />
-              </div>
-            </Dropdown>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex gap-1.5">
+                    <div className="mt-0.5">
+                      <UserIdBoldDuotone width={16} height={16} />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-black">
+                        {session?.user?.email}
+                      </span>
+                      <div className="inline-flex text-sm font-semibold text-blue-700">
+                        {roleLabel}
+                      </div>
+                      {/* <div className="inline-flex rounded-full bg-blue-50 px-2 py-1 text-sm font-semibold text-blue-700">
+                        {roleLabel}
+                      </div> */}
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={() => setIsPasswordModalVisible(true)}
+                  className="cursor-pointer"
+                >
+                  <KeyBoldDuotone width={18} height={18} />
+                  Нууц үг солих
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => {
+                    signOut({ callbackUrl: "/auth/signin" });
+                  }}
+                >
+                  <Login3BoldDuotone width={18} height={18} />
+                  Гарах
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
+
       <PasswordModal
         isOpen={isPasswordModalVisible}
         onClose={() => {
