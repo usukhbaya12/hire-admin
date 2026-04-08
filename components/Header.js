@@ -36,7 +36,7 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-neutral bg-white transition-shadow duration-300">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-neutral bg-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -translate-y-1/2 rotate-[-30deg] whitespace-nowrap text-lg font-semibold tracking-widest text-gray-400 opacity-50">
             {Array.from({ length: 200 }).map((_, i) => (
@@ -53,7 +53,6 @@ const Header = () => {
             ))}
           </div>
         </div>
-
         <div className="mx-auto flex items-center justify-between px-9 py-3">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">

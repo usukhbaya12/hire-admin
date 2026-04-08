@@ -3,23 +3,26 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { message } from "antd";
+import { toast } from "sonner";
 import {
   ChartSquareLineDuotone,
   CheckCircleBoldDuotone,
   EyeBoldDuotone,
   ListCheckLineDuotone,
   MagniferLineDuotone,
-  AddCircleBoldDuotone,
   SortFromTopToBottomLineDuotone,
   FilterLineDuotone,
   DocumentTextLineDuotone,
   NotesBoldDuotone,
   TestTubeMinimalisticLineDuotone,
   TrashBin2BoldDuotone,
-  CopyBoldDuotone,
-  Filters,
   CalendarLineDuotone,
+  DocumentAddLineDuotone,
+  UserLineDuotone,
+  SmileCircleBoldDuotone,
+  ChatRoundLineBoldDuotone,
+  ChatRoundLineDuotone,
+  Dialog2LineDuotone,
 } from "solar-icons";
 import {
   getAssessmentsNew,
@@ -65,6 +68,8 @@ import {
 import NewAssessment from "./modals/New";
 import InfoModal from "./modals/Info";
 import OkModal from "./modals/Ok";
+import { CommentOutlined } from "@ant-design/icons";
+import { MessageCircleMore } from "lucide-react";
 
 const ASSESSMENT_TYPE = {
   TEST: 10,
@@ -154,6 +159,7 @@ function FilterSelect({
   options,
   icon,
   placeholder = "Дараалал",
+  subOptions = [],
 }) {
   return (
     <Select
@@ -168,12 +174,26 @@ function FilterSelect({
       <SelectContent>
         <SelectGroup>
           <SelectLabel>{placeholder}</SelectLabel>
-          {options.map((item) => (
-            <SelectItem key={item.value || "all"} value={item.value || "all"}>
+          {options.map((item, index) => (
+            <SelectItem
+              key={item.value + index || "all"}
+              value={item.value || "all"}
+            >
               {item.label}
             </SelectItem>
           ))}
         </SelectGroup>
+        {subOptions.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Дэд ангилал</SelectLabel>
+
+            {subOptions.map((item, index) => (
+              <SelectItem key={`sub-${item.value}-${index}`} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
       </SelectContent>
     </Select>
   );
@@ -181,15 +201,15 @@ function FilterSelect({
 
 function SearchInput({ value, onChange }) {
   return (
-    <InputGroup
-      value={value}
-      onChange={onChange}
-      placeholder="Тестийн нэрээр хайх"
-    >
+    <InputGroup>
       <InputGroupAddon>
         <MagniferLineDuotone />
       </InputGroupAddon>
-      <InputGroupInput placeholder="Тестийн нэрээр хайх" />
+      <InputGroupInput
+        value={value}
+        onChange={onChange}
+        placeholder="Тестийн нэрээр хайх"
+      />
     </InputGroup>
   );
 }
@@ -249,8 +269,6 @@ export default function TestsPageClient({
   const router = useRouter();
   const abortRef = useRef(null);
 
-  const [messageApi, contextHolder] = message.useMessage();
-
   const [rows, setRows] = useState(initialData?.data || []);
   const [pagination, setPagination] = useState(
     initialData?.pagination || {
@@ -279,6 +297,10 @@ export default function TestsPageClient({
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
   const [sortValue, setSortValue] = useState("createdAt_DESC");
+  const [createdUserOptions, setCreatedUserOptions] = useState(
+    initialData?.meta?.createdUsers || [],
+  );
+  const [createdUser, setCreatedUser] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -288,25 +310,31 @@ export default function TestsPageClient({
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  const categoryOptions = useMemo(() => {
-    const flat = [{ value: "", label: "Бүх ангилал" }];
-
-    const walk = (items = []) => {
-      items.forEach((item) => {
-        flat.push({
+  const mainCategoryOptions = useMemo(
+    () => [
+      { value: "", label: "Бүх ангилал" },
+      ...categories
+        .filter((item) => !item.parent)
+        .map((item) => ({
           value: String(item.id),
           label: item.name,
-        });
+        })),
+    ],
+    [categories],
+  );
 
-        if (item.subcategories?.length) {
-          walk(item.subcategories);
-        }
-      });
-    };
-
-    walk(categories);
-    return flat;
-  }, [categories]);
+  const subCategoryOptions = useMemo(
+    () =>
+      categories
+        .filter((item) => !item.parent)
+        .flatMap((item) =>
+          (item.subcategories || []).map((sub) => ({
+            value: String(sub.id),
+            label: sub.name,
+          })),
+        ),
+    [categories],
+  );
 
   const fetchData = useCallback(
     async ({
@@ -314,6 +342,7 @@ export default function TestsPageClient({
       limit = pagination.limit,
       search = debouncedSearch,
       nextType = type,
+      nextCreatedUser = createdUser,
       nextStatus = status,
       nextCategory = category,
       nextSort = sortValue,
@@ -335,6 +364,7 @@ export default function TestsPageClient({
           limit,
           name: search || undefined,
           type: nextType || undefined,
+          createdUser: nextCreatedUser || undefined,
           status: nextStatus || undefined,
           category: nextCategory || undefined,
           sortBy,
@@ -355,12 +385,12 @@ export default function TestsPageClient({
           },
         );
         setFeaturedCount(res.data?.meta?.featured ?? 0);
+        setCreatedUserOptions(res.data?.meta?.createdUsers || []);
       } catch (error) {
         if (error?.name !== "AbortError") {
           console.error(error);
-          messageApi.error(
-            error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.",
-          );
+
+          toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
         }
       } finally {
         setTableLoading(false);
@@ -371,10 +401,11 @@ export default function TestsPageClient({
       pagination.limit,
       debouncedSearch,
       type,
+      createdUser,
       status,
       category,
       sortValue,
-      messageApi,
+      toast,
     ],
   );
 
@@ -383,7 +414,7 @@ export default function TestsPageClient({
       page: 1,
       limit: pagination.limit,
     });
-  }, [debouncedSearch, type, status, category, sortValue]);
+  }, [debouncedSearch, type, createdUser, status, category, sortValue]);
 
   const refreshCategories = useCallback(async () => {
     try {
@@ -391,15 +422,13 @@ export default function TestsPageClient({
       if (categoriesRes?.success) {
         setCategories(categoriesRes.data || []);
       } else {
-        messageApi.error(
-          categoriesRes?.message || "Ангилал дахин татахад алдаа гарлаа.",
-        );
+        toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
       }
     } catch (error) {
       console.error(error);
-      messageApi.error("Ангилал татахад алдаа гарлаа.");
+      toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
     }
-  }, [messageApi]);
+  }, [toast]);
 
   const handleCreateAssessment = useCallback(
     async (formData) => {
@@ -428,21 +457,21 @@ export default function TestsPageClient({
         });
 
         if (response?.success && response?.data?.id) {
-          messageApi.success("Тест амжилттай үүссэн.");
+          toast.success("Тест амжилттай үүссэн.");
           setIsModalOpen(false);
           await refreshCategories();
           router.push(`/test/${response.data.id}`);
         } else {
-          messageApi.error(response?.message || "Тест үүсгэхэд алдаа гарлаа.");
+          toast.error(response?.message || "Тест үүсгэхэд алдаа гарлаа.");
         }
       } catch (error) {
         console.error(error);
-        messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
+        toast.error("Сервертэй холбогдоход алдаа гарлаа.");
       } finally {
         setActionLoading(false);
       }
     },
-    [messageApi, refreshCategories, router],
+    [toast, refreshCategories, router],
   );
 
   const handleStatusChange = useCallback(
@@ -488,9 +517,7 @@ export default function TestsPageClient({
         if (!response?.success) {
           setRows(prevRows);
           setFeaturedCount(prevFeaturedCount);
-          messageApi.error(
-            response?.message || "Төлөв өөрчлөхөд алдаа гарлаа.",
-          );
+          toast.error(response?.message || "Төлөв өөрчлөхөд алдаа гарлаа.");
           return;
         }
 
@@ -505,18 +532,18 @@ export default function TestsPageClient({
           }));
         }
 
-        messageApi.success("Төлөв амжилттай өөрчлөгдлөө.");
+        toast.success("Төлөв амжилттай өөрчлөгдлөө.");
       } catch (error) {
         console.error(error);
         setRows(prevRows);
         setFeaturedCount(prevFeaturedCount);
-        messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
+        toast.error("Сервертэй холбогдоход алдаа гарлаа.");
       } finally {
         setActionLoading(false);
         setActiveRowId(null);
       }
     },
-    [rows, featuredCount, status, messageApi],
+    [rows, featuredCount, status, toast],
   );
 
   const handlePreview = useCallback((item) => {
@@ -537,7 +564,7 @@ export default function TestsPageClient({
       const response = await deleteAssessmentById(item.id);
 
       if (response?.success) {
-        messageApi.success("Тест устсан.");
+        toast.success("Тест устсан.");
         setDeleteModal({ open: false, record: null });
         await fetchData({
           page:
@@ -546,15 +573,15 @@ export default function TestsPageClient({
               : pagination.page,
         });
       } else {
-        messageApi.error(response?.message || "Тест устгахад алдаа гарлаа.");
+        toast.error(response?.message || "Тест устгахад алдаа гарлаа.");
       }
     } catch (error) {
       console.error(error);
-      messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
+      toast.error("Сервертэй холбогдоход алдаа гарлаа.");
     } finally {
       setActionLoading(false);
     }
-  }, [deleteModal.record, fetchData, rows.length, pagination.page, messageApi]);
+  }, [deleteModal.record, fetchData, rows.length, pagination.page, toast]);
 
   const handlePageChange = (nextPage) => {
     fetchData({
@@ -577,12 +604,14 @@ export default function TestsPageClient({
     setType("");
     setStatus("");
     setCategory("");
+    setCreatedUser("");
     setSortValue("createdAt_DESC");
     fetchData({
       page: 1,
       limit: 10,
       search: "",
       nextType: "",
+      nextCreatedUser: "",
       nextStatus: "",
       nextCategory: "",
       nextSort: "createdAt_DESC",
@@ -600,8 +629,6 @@ export default function TestsPageClient({
 
   return (
     <>
-      {contextHolder}
-
       <InfoModal
         open={deleteModal.open}
         onOk={handleDelete}
@@ -628,7 +655,7 @@ export default function TestsPageClient({
       />
 
       <div className="px-5 py-6">
-        <div className="mx-auto max-w-8xl">
+        <div className="mx-auto max-w-7xl">
           <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow shadow-slate-200">
             <div className="relative p-6 sm:p-8">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(243,100,33,0.15),_transparent_35%)]" />
@@ -646,7 +673,7 @@ export default function TestsPageClient({
 
                 <div className="flex flex-wrap gap-3">
                   <Button onClick={() => setIsModalOpen(true)}>
-                    <AddCircleBoldDuotone width={18} />
+                    <DocumentAddLineDuotone width={24} height={24} />
                     Тест үүсгэх
                   </Button>
                 </div>
@@ -659,12 +686,24 @@ export default function TestsPageClient({
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
             />
-
+            <FilterSelect
+              value={createdUser}
+              onChange={setCreatedUser}
+              options={[
+                { value: "", label: "Бүх админ" },
+                ...createdUserOptions.map((user) => ({
+                  value: String(user.id),
+                  label: user.name,
+                })),
+              ]}
+              icon={<UserLineDuotone width={18} />}
+              placeholder="Үүсгэсэн админ сонгох"
+            />
             <FilterSelect
               value={type}
               onChange={setType}
               options={typeOptions}
-              icon={<FilterLineDuotone width={18} />}
+              icon={<DocumentTextLineDuotone width={18} />}
               placeholder="Төрөл сонгох"
             />
 
@@ -679,9 +718,10 @@ export default function TestsPageClient({
             <FilterSelect
               value={category}
               onChange={setCategory}
-              options={categoryOptions}
-              icon={<DocumentTextLineDuotone width={18} />}
+              options={mainCategoryOptions}
+              icon={<TestTubeMinimalisticLineDuotone width={18} />}
               placeholder="Ангилал сонгох"
+              subOptions={subCategoryOptions}
             />
 
             <FilterSelect
@@ -697,12 +737,12 @@ export default function TestsPageClient({
           ) : (
             <>
               <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                <div className="grid grid-cols-25 gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold uppercase text-slate-500">
+                <div className="grid grid-cols-25 gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 font-bold text-slate-700">
                   <div className="col-span-9">Тестийн нэр</div>
-                  <div className="col-span-5">Үүсгэсэн</div>
+                  <div className="col-span-4">Үүсгэсэн</div>
                   <div className="col-span-2 text-center">Төлөв</div>
                   <div className="col-span-2 text-center">Үнэ</div>
-                  <div className="col-span-2 text-center">Өгсөн тоо</div>
+                  <div className="col-span-3 text-center">Өгсөн тоо</div>
                   <div className="col-span-4 text-center">Шинэчилсэн</div>
                   <div className="col-span-1 text-center"></div>
                 </div>
@@ -750,7 +790,7 @@ export default function TestsPageClient({
                           </div>
                         </Link>
 
-                        <div className="col-span-5 flex flex-col justify-center text-slate-600">
+                        <div className="col-span-4 flex flex-col justify-center text-slate-600">
                           <div className="flex gap-1">
                             {item.createdBy || "-"}
                           </div>
@@ -784,11 +824,25 @@ export default function TestsPageClient({
                             ? item.price.toLocaleString() + "₮"
                             : "Үнэгүй"}
                         </div>
+                        <div className="col-span-3 flex items-center justify-center text-slate-600">
+                          <div className="flex flex-col items-center">
+                            {item.count}
 
-                        <div className="col-span-2 flex items-center justify-center text-slate-600">
-                          {item.count ?? 0}
+                            <div className="flex items-center gap-3 text-[13px]">
+                              <span className="text-main flex items-center gap-1">
+                                <SmileCircleBoldDuotone width={14} />
+                                <span className="mt-0.5">
+                                  {item.percentage}%
+                                </span>
+                              </span>
+
+                              <span className="flex items-center gap-1 text-emerald-700">
+                                <Dialog2LineDuotone width={14} />
+                                <span className="mt-0.5">{item.comments}</span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
-
                         <div className="col-span-4 flex items-center justify-center text-slate-500">
                           <span className="inline-flex items-center gap-1">
                             <CalendarLineDuotone width={18} />

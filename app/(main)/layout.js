@@ -4,7 +4,7 @@ export default function MainAppLayout({ children }) {
   return (
     <>
       <Header />
-      {children}
+      <div className="pt-[66px]">{children}</div>
     </>
   );
 }
