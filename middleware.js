@@ -5,9 +5,19 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
   const secret = process.env.NEXTAUTH_SECRET;
 
+  // Skip public/static files explicitly
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico" ||
+    /\.(png|jpg|jpeg|gif|webp|svg|ico|avif|bmp|mp4|webm)$/i.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
-    secret: secret,
+    secret,
   });
 
   const isAuthenticated = !!token;
@@ -28,12 +38,8 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  if (!isAuthenticated) {
-    if (!isAuthPage) {
-      return NextResponse.redirect(new URL("/auth/signin", request.url));
-    }
-
-    return NextResponse.next();
+  if (!isAuthPage) {
+    return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
 
   return NextResponse.next();
