@@ -1,33 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "hire-test.cloud",
-        pathname: "/api/**",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "hire.mn",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "localhost",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        pathname: "/**",
-      },
-    ],
+    domains: ["srv666826.hstgr.cloud", "api.hire-test.cloud", "localhost"],
   },
   experimental: {
     serverActions: {
@@ -35,5 +9,4 @@ const nextConfig = {
     },
   },
 };
-
 export default nextConfig;

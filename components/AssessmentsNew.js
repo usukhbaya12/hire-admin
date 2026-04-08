@@ -134,7 +134,7 @@ function getStatusMeta(status) {
     case STATUS.ARCHIVED:
       return {
         label: "Архив",
-        className: "bg-slate-100 text-slate-600 border-slate-200",
+        className: "bg-slate-100 text-slate-800 border-slate-200",
       };
     case STATUS.FEATURED:
       return {
@@ -144,7 +144,7 @@ function getStatusMeta(status) {
     default:
       return {
         label: "Тодорхойгүй",
-        className: "bg-slate-100 text-slate-600 border-slate-200",
+        className: "bg-slate-100 text-slate-800 border-slate-200",
       };
   }
 }
@@ -229,13 +229,13 @@ function SkeletonRow() {
 function EmptyState({ onReset }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
         <DocumentTextLineDuotone width={24} />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-slate-900">
         Илэрц олдсонгүй
       </h3>
-      <p className="mt-1 text-slate-500">
+      <p className="mt-1 text-slate-600">
         Хайлтын үг эсвэл шүүлтүүрээ өөрчлөөд дахин оролдоно уу.
       </p>
       <Button onClick={onReset} variant="secondary" className="mt-5">
@@ -656,7 +656,7 @@ export default function TestsPageClient({
 
       <div className="px-5 py-6">
         <div className="mx-auto max-w-7xl">
-          <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow shadow-slate-200">
+          <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white">
             <div className="relative p-6 sm:p-8">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(243,100,33,0.15),_transparent_35%)]" />
               <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -737,7 +737,7 @@ export default function TestsPageClient({
           ) : (
             <>
               <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                <div className="grid grid-cols-25 gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 font-bold text-slate-700">
+                <div className="grid grid-cols-25 gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 font-bold text-slate-800">
                   <div className="col-span-9">Тестийн нэр</div>
                   <div className="col-span-4">Үүсгэсэн</div>
                   <div className="col-span-2 text-center">Төлөв</div>
@@ -776,7 +776,7 @@ export default function TestsPageClient({
                               <p className="text-main! text-[15px] font-bold text-slate-900">
                                 {item.name}
                               </p>
-                              <div className="flex items-center gap-3 text-[13px] text-slate-500">
+                              <div className="flex items-center gap-3 text-[13px] text-slate-600">
                                 <span className="inline-flex items-center gap-1">
                                   <TestTubeMinimalisticLineDuotone width={14} />
                                   {item.category || "-"}
@@ -790,11 +790,11 @@ export default function TestsPageClient({
                           </div>
                         </Link>
 
-                        <div className="col-span-4 flex flex-col justify-center text-slate-600">
+                        <div className="col-span-4 flex flex-col justify-center text-slate-800">
                           <div className="flex gap-1">
                             {item.createdBy || "-"}
                           </div>
-                          <div className="flex items-center gap-3 text-[13px] text-slate-500">
+                          <div className="flex items-center gap-3 text-[13px] text-slate-600">
                             <span className="inline-flex items-center gap-1">
                               <CalendarLineDuotone width={14} />
                               <span className="mt-1">
@@ -819,12 +819,12 @@ export default function TestsPageClient({
                           </span>
                         </div>
 
-                        <div className="col-span-2 flex items-center justify-center font-medium text-slate-700">
+                        <div className="col-span-2 flex items-center justify-center font-medium text-slate-800">
                           {item.price > 0
                             ? item.price.toLocaleString() + "₮"
                             : "Үнэгүй"}
                         </div>
-                        <div className="col-span-3 flex items-center justify-center text-slate-600">
+                        <div className="col-span-3 flex items-center justify-center text-slate-800">
                           <div className="flex flex-col items-center">
                             {item.count}
 
@@ -843,7 +843,7 @@ export default function TestsPageClient({
                             </div>
                           </div>
                         </div>
-                        <div className="col-span-4 flex items-center justify-center text-slate-500">
+                        <div className="col-span-4 flex items-center justify-center text-slate-600">
                           <span className="inline-flex items-center gap-1">
                             <CalendarLineDuotone width={18} />
 
@@ -958,7 +958,7 @@ export default function TestsPageClient({
               </section>
 
               <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between mb-2">
-                <div className="text-slate-500">
+                <div className="text-slate-600">
                   {from}-с {to} / Нийт {pagination.total} тест
                 </div>
 

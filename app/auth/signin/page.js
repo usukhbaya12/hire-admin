@@ -29,6 +29,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
 
 const formSchema = z.object({
   email: z
@@ -250,9 +251,10 @@ export default function Signin() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#f36421] text-white hover:bg-[#e85a18]"
+                  className="w-full"
                 >
-                  {isSubmitting ? "Нэвтэрч байна..." : "Нэвтрэх"}
+                  {isSubmitting && <Spinner data-icon="inline-start" />}
+                  Нэвтрэх
                 </Button>
 
                 <div className="pt-2">
