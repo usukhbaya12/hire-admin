@@ -458,6 +458,7 @@ export default function Test() {
         <Report
           assessmentData={assessmentData}
           onUpdateAssessment={handleUpdateAssessment}
+          assessmentQuestions={assessmentQuestions}
         />
       ),
     },

@@ -63,7 +63,7 @@ const Blogs = () => {
     });
 
     const currentlyPinned = blogs.find(
-      (blog) => blog.pinned && blog.id !== recordToToggle.id
+      (blog) => blog.pinned && blog.id !== recordToToggle.id,
     );
     const isPinning = !recordToToggle.pinned;
 
@@ -82,7 +82,7 @@ const Blogs = () => {
       });
       if (!toggleResponse.success) {
         throw new Error(
-          toggleResponse.message || "Блогийн статусыг шинэчлэхэд алдаа гарлаа."
+          toggleResponse.message || "Блогийн статусыг шинэчлэхэд алдаа гарлаа.",
         );
       }
 
@@ -138,7 +138,7 @@ const Blogs = () => {
   const fetchBlogs = async (
     page = 1,
     type = categoryFilter,
-    pageSize = pagination.pageSize
+    pageSize = pagination.pageSize,
   ) => {
     try {
       setLoading(true);
@@ -172,7 +172,7 @@ const Blogs = () => {
 
     if (searchText) {
       filtered = filtered.filter((item) =>
-        item.title.toLowerCase().includes(searchText.toLowerCase())
+        item.title.toLowerCase().includes(searchText.toLowerCase()),
       );
     }
 
@@ -245,7 +245,7 @@ const Blogs = () => {
       dataIndex: "category",
       render: (category, record) => {
         const categoryObj = BLOG_CATEGORIES.find(
-          (cat) => cat.value === category
+          (cat) => cat.value === category,
         );
         return (
           <div className="items-center">
@@ -335,6 +335,7 @@ const Blogs = () => {
           }}
           onCancel={() => setDeleteModal({ open: false, record: null })}
           text={`"${deleteModal.record?.title}" блогийг устгахдаа итгэлтэй байна уу? Энэ үйлдлийг дахин сэргээх боломжгүй.`}
+          title="Блог устгах"
         />
         <div className="flex justify-between">
           <div className="flex gap-4">

@@ -1,39 +1,40 @@
 import { Provider } from "@/utils/provider";
 import localFont from "next/font/local";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 const GIP = localFont({
   src: [
     {
-      path: "./fonts/GIP-Thin.woff",
+      path: "./fonts/Gilroy-Thin.ttf",
       weight: "300",
     },
     {
-      path: "./fonts/GIP-Regular.woff",
+      path: "./fonts/Gilroy-Regular.ttf",
       weight: "400",
     },
     {
-      path: "./fonts/GIP-Medium.woff",
+      path: "./fonts/Gilroy-Medium.ttf",
       weight: "500",
     },
     {
-      path: "./fonts/GIP-SemiBold.woff",
+      path: "./fonts/Gilroy-SemiBold.ttf",
       weight: "600",
     },
     {
-      path: "./fonts/GIP-Bold.woff",
+      path: "./fonts/Gilroy-Bold.ttf",
       weight: "700",
     },
     {
-      path: "./fonts/GIP-ExtraBold.woff",
+      path: "./fonts/Gilroy-ExtraBold.ttf",
       weight: "800",
     },
     {
-      path: "./fonts/GIP-Black.woff",
+      path: "./fonts/Gilroy-Black.ttf",
       weight: "900",
     },
     {
-      path: "./fonts/GIP-Heavy.woff",
+      path: "./fonts/Gilroy-Heavy.ttf",
       weight: "1000",
     },
   ],
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
       <Provider>
         <body className={`${GIP.variable} antialiased overscroll-y-none`}>
           <AntdRegistry>{children}</AntdRegistry>
+          <Toaster position="top-center" />
         </body>
       </Provider>
     </html>

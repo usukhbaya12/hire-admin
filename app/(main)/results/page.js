@@ -2,9 +2,9 @@
 
 import React from "react";
 import Menu from "@/components/Menu";
-import Results from "@/components/Results";
+import ResultsNew from "@/components/Results";
 
-export default function UsersPage() {
+export default function ResultsPage() {
   return (
     <>
       <div className="flex">
@@ -12,7 +12,7 @@ export default function UsersPage() {
           <Menu />
         </div>
         <div className="flex-grow ml-[220px]">
-          <Results />
+          <ResultsNew />
         </div>
       </div>
     </>

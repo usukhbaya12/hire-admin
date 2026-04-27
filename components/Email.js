@@ -191,6 +191,14 @@ const Email = () => {
         <span className="text-blue-600 font-bold">{email}</span>
       ),
     },
+    {
+      title: "Тестийн нэр",
+      dataIndex: "assessmentName",
+      key: "assessmentName",
+      render: (assessmentName) => (
+        <span className="text-blue-600 font-bold">{assessmentName}</span>
+      ),
+    },
 
     {
       title: "Төлөв",

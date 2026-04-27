@@ -22,7 +22,7 @@ const Questions = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localTestName, setLocalTestName] = useState(
-    assessmentData?.data.name || ""
+    assessmentData?.data.name || "",
   );
 
   const [selection, setSelection] = useState({
@@ -81,7 +81,7 @@ const Questions = ({
         });
       }
     },
-    [assessmentData, onUpdateAssessment]
+    [assessmentData, onUpdateAssessment],
   );
 
   const updateBlock = React.useCallback(
@@ -93,13 +93,13 @@ const Questions = ({
 
       setBlocks((prev) => {
         const newBlocks = prev.map((block) =>
-          block.id === blockId ? { ...block, ...updates } : block
+          block.id === blockId ? { ...block, ...updates } : block,
         );
         handleBlocksUpdate(newBlocks);
         return newBlocks;
       });
     },
-    [handleBlocksUpdate, onBlockModified]
+    [handleBlocksUpdate, onBlockModified],
   );
 
   const updateQuestion = React.useCallback(
@@ -113,12 +113,12 @@ const Questions = ({
         prev.map((block) => ({
           ...block,
           questions: block.questions.map((q) =>
-            q.id === questionId ? { ...q, ...updates } : q
+            q.id === questionId ? { ...q, ...updates } : q,
           ),
-        }))
+        })),
       );
     },
-    [onQuestionModified]
+    [onQuestionModified],
   );
 
   const addBlock = React.useCallback(() => {
@@ -188,7 +188,7 @@ const Questions = ({
         const newBlocks = prev.map((block) =>
           block.id === blockId
             ? { ...block, questions: [...block.questions, newQuestion] }
-            : block
+            : block,
         );
 
         if (handleBlocksUpdate) {
@@ -202,7 +202,7 @@ const Questions = ({
         return newBlocks;
       });
     },
-    [handleBlocksUpdate, setSelection, onBlockModified]
+    [handleBlocksUpdate, setSelection, onBlockModified],
   );
 
   const deleteBlock = React.useCallback((blockId) => {
@@ -307,8 +307,8 @@ const Questions = ({
                         .filter((q) => q.id !== questionId)
                         .map((q, index) => ({ ...q, order: index + 1 })),
                     }
-                  : block
-              )
+                  : block,
+              ),
             );
 
             if (selection.questionId === questionId) {
@@ -340,8 +340,8 @@ const Questions = ({
                   .filter((q) => q.id !== questionId)
                   .map((q, index) => ({ ...q, order: index + 1 })),
               }
-            : block
-        )
+            : block,
+        ),
       );
 
       if (selection.questionId === questionId) {
@@ -463,8 +463,8 @@ const Questions = ({
             prev.map((block) =>
               block.id === selection.blockId
                 ? { ...block, questions: [...block.questions, newQuestion] }
-                : block
-            )
+                : block,
+            ),
           );
           handleSelect(selection.blockId, newQuestion.id);
         } else if (copiedItem.type === "block") {
@@ -511,8 +511,8 @@ const Questions = ({
       prev.map((block) =>
         block.id === selection.blockId
           ? { ...block, questions: [...block.questions, newQuestion] }
-          : block
-      )
+          : block,
+      ),
     );
 
     handleSelect(selection.blockId, questionId);
@@ -554,6 +554,7 @@ const Questions = ({
             ? `Блокийг устгах гэж байна. Итгэлтэй байна уу? Энэ үйлдлийг буцан сэргээх боломжгүй.`
             : `Асуултыг устгах гэж байна. Итгэлтэй байна уу? Энэ үйлдлийг буцан сэргээх боломжгүй.`
         }
+        title={deleteModal.type === "block" ? `Блок устгах` : `Асуулт устгах`}
       />
       <Tools
         selection={selection}

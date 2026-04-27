@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   message,
   Form,
@@ -12,6 +12,7 @@ import {
   Divider,
   Input,
   Upload,
+  Radio,
 } from "antd";
 import { PlusIcon, DropdownIcon, MenuIcon } from "./Icons";
 import { updateAssessmentById } from "@/app/api/assessment";
@@ -31,9 +32,15 @@ import {
 } from "solar-icons";
 import { InboxOutlined } from "@ant-design/icons";
 import { api } from "@/utils/routes";
+import ResultConfiguration from "./Interval";
+import { formatDemoResults, generateDemoData } from "./Demo";
 const { Dragger } = Upload;
 
-const Report = ({ assessmentData, onUpdateAssessment }) => {
+const Report = ({
+  assessmentData,
+  onUpdateAssessment,
+  assessmentQuestions,
+}) => {
   const [selected, setSelected] = useState("formula");
   const [form] = Form.useForm();
   const [aggregations, setAggregations] = useState([
@@ -53,6 +60,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     assessmentData?.data?.report || null,
   );
   const [hasFormula, setHasFormula] = useState(!!assessmentData?.data?.formule);
+  const [resultConfig, setResultConfig] = useState(null);
   const [hasReport, setHasReport] = useState(
     !!assessmentData?.data?.exampleReport,
   );
@@ -107,7 +115,7 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
             setSortValue(response.data.sort === true ? "true" : "false");
           }
         } catch (error) {
-          messageApi.error("Томьёоны мэдээлэл ачааллахад алдаа гарлаа");
+          messageApi.error("Томьёоны мэдээлэл татаж чадсангүй.");
         } finally {
           setLoading(false);
         }
@@ -122,6 +130,36 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
   useEffect(() => {
     setReportType(assessmentData?.data?.report || null);
   }, [assessmentData?.data?.report]);
+
+  const demoData = useMemo(() => {
+    const answerCategories = assessmentData?.data?.answerCategories || [];
+    return generateDemoData(assessmentQuestions, answerCategories);
+  }, [assessmentQuestions, assessmentData?.data?.answerCategories]);
+
+  const formattedResults = useMemo(() => {
+    if (!demoData) return null;
+    return formatDemoResults(
+      demoData,
+      groupByEnabled,
+      aggregations,
+      sortEnabled,
+      sortValue,
+      limitEnabled,
+      limitValue,
+      assessmentQuestions,
+    );
+  }, [
+    demoData,
+    groupByEnabled,
+    aggregations,
+    sortEnabled,
+    sortValue,
+    limitEnabled,
+    limitValue,
+    assessmentQuestions,
+  ]);
+
+  console.log("for", formattedResults);
 
   const fieldOptions = [{ value: "point", label: "Оноо" }];
   const filterFieldOptions = [{ value: "correct", label: "Зөв хариулт" }];
@@ -437,6 +475,19 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
     }
   };
 
+  const showLimit = () => {
+    if (!formattedResults?.aggregated) return false;
+
+    const operation = Object.keys(formattedResults.aggregated)[0];
+    if (!operation) return false;
+
+    const values = formattedResults.aggregated[operation];
+    const resultCount = Object.keys(values).length;
+
+    // Only show if there are 2 or more results
+    return resultCount > 1;
+  };
+
   return (
     <div className="mt-[47px]">
       {contextHolder}
@@ -509,8 +560,8 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-5!">
+              <div className="grid grid-cols-13 gap-6">
+                <div className="space-y-5! col-span-4">
                   {(assessmentData?.data?.answerCategories?.length > 0 ||
                     assessmentData?.questionCategories?.length > 0) && (
                     <Card
@@ -632,6 +683,91 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                       )}
                     </div>
                   </Card>
+                  {showLimit() && (
+                    <Card
+                      title={
+                        <div className="flex items-center gap-2">
+                          <DatabaseBoldDuotone width={17} />
+                          <span>Дараалал</span>
+                        </div>
+                      }
+                    >
+                      <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Switch
+                            size="small"
+                            checked={limitEnabled}
+                            onChange={setLimitEnabled}
+                          />
+                          <span className="font-medium">
+                            {`Эхний {n} үр дүнг авах`}
+                          </span>
+                        </div>
+                        {limitEnabled && (
+                          <div>
+                            <InputNumber
+                              min={1}
+                              value={limitValue}
+                              onChange={setLimitValue}
+                              className="w-32"
+                              placeholder="Хэдэн ширхэг"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Switch
+                            size="small"
+                            checked={orderEnabled}
+                            onChange={setOrderEnabled}
+                          />
+                          <span className="font-medium">Дугаарлах</span>
+                        </div>
+                        {orderEnabled && (
+                          <div>
+                            <Select
+                              suffixIcon={
+                                <DropdownIcon width={15} height={15} />
+                              }
+                              value={orderValue}
+                              onChange={setOrderValue}
+                              className="w-48"
+                              options={fieldOptions}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Switch
+                            size="small"
+                            checked={sortEnabled}
+                            onChange={setSortEnabled}
+                          />
+                          <span className="font-medium">Эрэмбэлэх</span>
+                        </div>
+                        {sortEnabled && (
+                          <div>
+                            <Select
+                              suffixIcon={
+                                <DropdownIcon width={15} height={15} />
+                              }
+                              value={sortValue}
+                              onChange={setSortValue}
+                              className="w-48"
+                              options={sortOptions}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                </div>
+
+                <div className="space-y-5! col-span-4">
                   {assessmentData?.data?.type === 10 && (
                     <Card
                       title={
@@ -692,89 +828,21 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                       </div>
                     </Card>
                   )}
-                </div>
-
-                <div className="space-y-5!">
+                  <FormulaExample
+                    demoData={demoData}
+                    formattedResults={formattedResults}
+                    aggregations={aggregations}
+                    limitEnabled={limitEnabled}
+                    limitValue={limitValue}
+                    sortEnabled={sortEnabled}
+                    sortValue={sortValue}
+                    assessmentQuestions={assessmentQuestions}
+                    resultConfig={resultConfig}
+                  />
                   <Card
                     title={
                       <div className="flex items-center gap-2">
-                        <DatabaseBoldDuotone width={17} />
-                        <span>Дараалал</span>
-                      </div>
-                    }
-                  >
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Switch
-                          size="small"
-                          checked={limitEnabled}
-                          onChange={setLimitEnabled}
-                        />
-                        <span className="font-medium">
-                          {`Эхний {n} үр дүнг авах`}
-                        </span>
-                      </div>
-                      {limitEnabled && (
-                        <div>
-                          <InputNumber
-                            min={1}
-                            value={limitValue}
-                            onChange={setLimitValue}
-                            className="w-32"
-                            placeholder="Хэдэн ширхэг"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Switch
-                          size="small"
-                          checked={orderEnabled}
-                          onChange={setOrderEnabled}
-                        />
-                        <span className="font-medium">Дугаарлах</span>
-                      </div>
-                      {orderEnabled && (
-                        <div>
-                          <Select
-                            suffixIcon={<DropdownIcon width={15} height={15} />}
-                            value={orderValue}
-                            onChange={setOrderValue}
-                            className="w-48"
-                            options={fieldOptions}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Switch
-                          size="small"
-                          checked={sortEnabled}
-                          onChange={setSortEnabled}
-                        />
-                        <span className="font-medium">Эрэмбэлэх</span>
-                      </div>
-                      {sortEnabled && (
-                        <div>
-                          <Select
-                            suffixIcon={<DropdownIcon width={15} height={15} />}
-                            value={sortValue}
-                            onChange={setSortValue}
-                            className="w-48"
-                            options={sortOptions}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                  <Card
-                    title={
-                      <div className="flex items-center gap-2">
-                        <MenuIcon width={20} />
+                        <MenuIcon width={15} />
                         <span>Тайлангийн төрөл</span>
                       </div>
                     }
@@ -801,16 +869,14 @@ const Report = ({ assessmentData, onUpdateAssessment }) => {
                     Томьёо хадгалах
                   </Button>
                 </div>
-                <div className="space-y-6">
-                  <FormulaExample
-                    assessmentData={assessmentData}
+                <div className="space-y-5! col-span-5">
+                  <ResultConfiguration
+                    assessmentQuestions={assessmentQuestions}
+                    demoData={demoData}
+                    formattedResults={formattedResults}
                     groupByEnabled={groupByEnabled}
                     aggregations={aggregations}
-                    filters={filters}
-                    limitEnabled={limitEnabled}
-                    limitValue={limitValue}
-                    sortEnabled={sortEnabled}
-                    sortValue={sortValue}
+                    setResultConfig={setResultConfig}
                   />
                 </div>
               </div>
