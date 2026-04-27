@@ -1,594 +1,1095 @@
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  Table,
-  Input,
-  message,
-  Button,
-  Spin,
-  Progress,
-  DatePicker,
-  Tooltip,
-  ConfigProvider,
-  Select,
-} from "antd";
-import {
-  ClipboardTextBoldDuotone,
-  FolderFavouriteBookmarkBoldDuotone,
-  DownloadBoldDuotone,
-  CalendarBoldDuotone,
-  MagniferLineDuotone,
-  MagniferBoldDuotone,
-} from "solar-icons";
-import { getAssessmentExams } from "@/app/api/constant";
-import { getAssessments } from "@/app/api/assessment";
-import dayjs from "dayjs";
-import mnMN from "antd/lib/locale/mn_MN";
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { customLocale } from "@/utils/values";
-import { getReport } from "@/app/api/assessment";
-import { LoadingOutlined } from "@ant-design/icons";
-import { DropdownIcon } from "./Icons";
-import Link from "next/link";
+import {
+  FolderFavouriteBookmarkBoldDuotone,
+  MagniferLineDuotone,
+  SortFromTopToBottomLineDuotone,
+  CalendarLineDuotone,
+  Buildings2LineDuotone,
+  DownloadSquareLineDuotone,
+  EyeBoldDuotone,
+  EyeClosedLineDuotone,
+  NotesBoldDuotone,
+  CheckCircleBoldDuotone,
+  FilterLineDuotone,
+  LaptopLineDuotone,
+  UserIdLineDuotone,
+  DocumentAddLineDuotone,
+  CursorSquareLineDuotone,
+  CheckCircleLineDuotone,
+} from "solar-icons";
 
-const Results = () => {
-  const [messageApi, contextHolder] = message.useMessage();
-  const [loading, setLoading] = useState(false);
-  const [examData, setExamData] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedAssessment, setSelectedAssessment] = useState(null);
-  const [assessmentOptions, setAssessmentOptions] = useState([]);
-  const [filteredInfo, setFilteredInfo] = useState({});
-  const [startDate, setStartDate] = useState(dayjs().subtract(1, "month"));
-  const [endDate, setEndDate] = useState(dayjs().add(1, "day"));
+import { getAssessmentExamsNew } from "@/app/api/constant";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel,
+} from "./ui/select";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./ui/input-group";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "./ui/pagination";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 
-  const fetchAssessments = async () => {
-    try {
-      const response = await getAssessments({
-        limit: 300,
-        page: 1,
-      });
-      if (response.success) {
-        const options = response.data.data.map((assessment) => ({
-          label: assessment.data.name,
-          value: assessment.data.id,
-        }));
-        setAssessmentOptions(options);
-      }
-    } catch (error) {
-      console.error("Error fetching assessments:", error);
-    }
+const EXAM_STATUS = {
+  STARTED: 10,
+  FINISHED: 20,
+  NOT_STARTED: 30,
+};
+
+const DEFAULT_LIMIT = 20;
+const DEFAULT_SORT = "createdAt_DESC";
+
+const examStatusOptions = [
+  { value: "", label: "Бүх төлөв" },
+  { value: String(EXAM_STATUS.STARTED), label: "Эхэлсэн" },
+  { value: String(EXAM_STATUS.FINISHED), label: "Дууссан" },
+  { value: String(EXAM_STATUS.NOT_STARTED), label: "Өгөөгүй" },
+];
+
+const sortOptions = [
+  { value: "createdAt_DESC", label: "Сүүлд үүссэн" },
+  { value: "createdAt_ASC", label: "Эхэнд үүссэн" },
+  { value: "userStartDate_DESC", label: "Сүүлд өгсөн" },
+  { value: "userStartDate_ASC", label: "Эхэнд өгсөн" },
+  { value: "userEndDate_DESC", label: "Сүүлд дууссан" },
+  { value: "userEndDate_ASC", label: "Эхэнд дууссан" },
+  { value: "assessmentName_ASC", label: "Тест A-Я" },
+  { value: "assessmentName_DESC", label: "Тест Я-А" },
+  // { value: "firstname_ASC", label: "Нэр A-Я" },
+  // { value: "firstname_DESC", label: "Нэр Я-A" },
+  // { value: "buyerOrganizationName_ASC", label: "Байгууллага A-Я" },
+  // { value: "buyerOrganizationName_DESC", label: "Байгууллага Я-A" },
+  // { value: "examstatus_ASC", label: "Төлөв ↑" },
+  // { value: "examstatus_DESC", label: "Төлөв ↓" },
+];
+
+const EMPTY_META = {
+  assessments: [],
+  buyers: [],
+  counts: {
+    today: 0,
+    yesterday: 0,
+    thisWeek: 0,
+    lastWeek: 0,
+    thisMonth: 0,
+    lastMonth: 0,
+  },
+};
+
+const EMPTY_PAGINATION = {
+  page: 1,
+  limit: DEFAULT_LIMIT,
+  total: 0,
+  totalPages: 0,
+};
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function getDefaultDateRange() {
+  const start = new Date();
+  start.setMonth(start.getMonth() - 1);
+
+  const end = new Date();
+  end.setDate(end.getDate() + 1);
+
+  return { start, end };
+}
+
+function formatDateForApi(date) {
+  if (!date) return null;
+
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDate(value, withTime = false) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+
+  if (!withTime) return `${yyyy}-${mm}-${dd}`;
+
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
+function getExamStatusMeta(status) {
+  switch (Number(status)) {
+    case EXAM_STATUS.FINISHED:
+      return {
+        label: "Дууссан",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      };
+    case EXAM_STATUS.STARTED:
+      return {
+        label: "Эхэлсэн",
+        className: "bg-blue-50 text-blue-700 border-blue-200",
+      };
+    case EXAM_STATUS.NOT_STARTED:
+    default:
+      return {
+        label: "Өгөөгүй",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+  }
+}
+
+function SearchInput({ value, onChange, placeholder = "И-мэйлээр хайх" }) {
+  return (
+    <div className="group relative">
+      <label className="bg-background text-foreground absolute top-0 left-2 z-10 block -translate-y-1/2 px-1 text-xs font-medium group-has-disabled:opacity-50">
+        Шалгуулагч
+      </label>
+      <InputGroup>
+        <InputGroupAddon>
+          <MagniferLineDuotone />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+        />
+      </InputGroup>
+    </div>
+  );
+}
+
+function SelectFilter({
+  value,
+  onChange,
+  options,
+  icon,
+  placeholder = "Сонгох",
+}) {
+  return (
+    <div className="group relative">
+      <label className="bg-background text-foreground absolute top-0 left-2 z-10 block -translate-y-1/2 px-1 text-xs font-medium group-has-disabled:opacity-50">
+        {placeholder}
+      </label>
+
+      <Select
+        value={value || "all"}
+        onValueChange={(val) => onChange(val === "all" ? "" : val)}
+      >
+        <SelectTrigger>
+          {icon}
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel>{placeholder}</SelectLabel>
+            {options.map((item, index) => (
+              <SelectItem
+                key={`${item.value ?? "all"}-${index}`}
+                value={item.value || "all"}
+              >
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  icon,
+  placeholder = "Сонгох",
+  label,
+}) {
+  const normalizedOptions = options.map((item) => ({
+    value: item.value ?? "all",
+    label: item.label,
+  }));
+
+  const selected =
+    normalizedOptions.find((item) => item.value === (value || "all"))?.label ||
+    "";
+
+  return (
+    <div className="w-50">
+      <div className="group relative">
+        <label className="bg-background text-foreground absolute top-0 left-2 z-10 block -translate-y-1/2 px-1 text-xs font-medium group-has-disabled:opacity-50">
+          {label}
+        </label>
+
+        <Combobox
+          autoHighlight
+          items={normalizedOptions}
+          value={selected}
+          onValueChange={(selectedLabel) => {
+            const selectedItem = normalizedOptions.find(
+              (item) => item.label === selectedLabel,
+            );
+            onChange(selectedItem?.value === "all" ? "" : selectedItem?.value);
+          }}
+        >
+          <ComboboxInput
+            placeholder={placeholder}
+            className="h-9.5"
+            showClear={!!value}
+          >
+            <InputGroupAddon>{icon}</InputGroupAddon>
+          </ComboboxInput>
+
+          <ComboboxContent className="w-50">
+            <ComboboxEmpty>Өгөгдөл олдсонгүй</ComboboxEmpty>
+            <ComboboxList>
+              {(item) => (
+                <ComboboxItem key={item.value} value={item.label}>
+                  {item.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="grid animate-pulse grid-cols-25 gap-4 border-t border-slate-100 px-5 py-4">
+      <div className="col-span-7 h-4 rounded bg-slate-200" />
+      <div className="col-span-5 h-4 rounded bg-slate-200" />
+      <div className="col-span-4 h-4 rounded bg-slate-200" />
+      <div className="col-span-3 h-4 rounded bg-slate-200" />
+      <div className="col-span-4 h-4 rounded bg-slate-200" />
+      <div className="col-span-2 h-4 rounded bg-slate-200" />
+    </div>
+  );
+}
+
+function EmptyState({ onReset }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+        <FolderFavouriteBookmarkBoldDuotone width={24} />
+      </div>
+      <h3 className="mt-4 text-lg font-semibold text-slate-900">
+        Илэрц олдсонгүй
+      </h3>
+      <p className="mt-1 text-slate-600">
+        Хайлтын нөхцөл эсвэл шүүлтүүрээ өөрчлөөд дахин оролдоно уу.
+      </p>
+      <Button onClick={onReset} variant="secondary" className="mt-5">
+        <FilterLineDuotone width={18} />
+        Цэвэрлэх
+      </Button>
+    </div>
+  );
+}
+
+function getPaginationItems(current, total) {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  if (current <= 3) {
+    return [1, 2, 3, 4, "ellipsis", total];
+  }
+
+  if (current >= total - 2) {
+    return [1, "ellipsis", total - 3, total - 2, total - 1, total];
+  }
+
+  return [1, "ellipsis", current - 1, current, current + 1, "ellipsis", total];
+}
+
+function getGrowthMeta(current = 0, previous = 0) {
+  if (!previous && !current) {
+    return { text: "0%", positive: true, diff: 0 };
+  }
+
+  if (!previous && current > 0) {
+    return { text: "+100%", positive: true, diff: current };
+  }
+
+  const diff = current - previous;
+  const pct = Math.round((diff / previous) * 100);
+
+  return {
+    text: `${pct > 0 ? "+" : ""}${pct}%`,
+    positive: diff >= 0,
+    diff,
   };
+}
 
-  const fetchResults = async (
-    page = 1,
-    size = pageSize,
-    search = searchTerm
-  ) => {
-    try {
-      setLoading(true);
+function SingleDatePicker({ value, onChange, minDate, maxDate, placeholder }) {
+  return (
+    <div className="group relative">
+      <label className="bg-background text-foreground absolute top-0 left-2 z-10 block -translate-y-1/2 px-1 text-xs font-medium group-has-disabled:opacity-50">
+        {placeholder}
+      </label>
 
-      const startDateStr = startDate ? startDate.format("YYYY-MM-DD") : null;
-      const adjustedEndDate = endDate ? endDate.add(1, "day") : null;
-      const endDateStr = adjustedEndDate
-        ? adjustedEndDate.format("YYYY-MM-DD")
-        : null;
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="justify-start text-left"
+            data-icon="inline-end"
+          >
+            <CalendarLineDuotone className="text-black/50 -ml-1" />
+            <span className="ml-0.5">
+              {value ? formatDateForApi(value) : placeholder || "Огноо сонгох"}
+            </span>
+          </Button>
+        </PopoverTrigger>
 
-      const response = await getAssessmentExams(
-        selectedAssessment || 0,
-        size,
-        page,
-        search,
-        startDateStr,
-        endDateStr
-      );
+        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={value || undefined}
+            onSelect={onChange}
+            disabled={(date) => {
+              if (minDate && date < minDate) return true;
+              if (maxDate && date > maxDate) return true;
+              return false;
+            }}
+            defaultMonth={value || new Date()}
+            initialFocus
+            className="[--cell-size:--spacing(7.5)] text-[13px]"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
-      if (response.success) {
-        setExamData(response.data.data || []);
-        setTotalCount(response.data.total || 0);
-        setCurrentPage(page);
-      } else {
-        messageApi.error(
-          response.message || "Сервертэй холбогдоход алдаа гарлаа."
+function renderResult(item) {
+  if (Number(item.examstatus) !== EXAM_STATUS.FINISHED) return "-";
+
+  const { result, value, point, assessmentType, totalPoint } = item;
+
+  if (assessmentType === 10) {
+    const percent =
+      totalPoint && totalPoint > 0 ? Math.round((point / totalPoint) * 100) : 0;
+
+    return (
+      <div className="w-full max-w-[180px]">
+        <div className="flex items-center justify-between text-[13px] font-semibold text-slate-900">
+          <span className="text-slate-500">{percent}%</span>
+
+          <span>
+            {point}/{totalPoint}
+          </span>
+        </div>
+
+        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-main transition-all"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        {(result || value) && (
+          <div className="mt-1 text-[12px] text-slate-600">
+            {[result, value].filter(Boolean).join(" / ")}
+          </div>
+        )}
+      </div>
+    );
+  } else if (assessmentType === 20) {
+    return (
+      <div className="font-semibold text-slate-900">
+        {[result, value].filter(Boolean).join(" / ")}
+      </div>
+    );
+  } else {
+    return "-";
+  }
+}
+
+export default function ResultsPageClient({ initialData = null }) {
+  const defaultRange = useMemo(() => getDefaultDateRange(), []);
+
+  const [rows, setRows] = useState(initialData?.data || []);
+  const [pagination, setPagination] = useState(
+    initialData?.pagination || EMPTY_PAGINATION,
+  );
+  const [meta, setMeta] = useState(initialData?.meta || EMPTY_META);
+  const [tableLoading, setTableLoading] = useState(false);
+
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [assessment, setAssessment] = useState("");
+  const [buyer, setBuyer] = useState("");
+  const [examstatus, setExamstatus] = useState("");
+  const [sortValue, setSortValue] = useState(DEFAULT_SORT);
+  const [startDate, setStartDate] = useState(defaultRange.start);
+  const [endDate, setEndDate] = useState(defaultRange.end);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const fetchData = useCallback(
+    async ({
+      page = 1,
+      limit = pagination.limit,
+      nextAssessment = assessment,
+      nextBuyer = buyer,
+      nextSearch = debouncedSearch,
+      nextExamstatus = examstatus,
+      nextStartDate = startDate,
+      nextEndDate = endDate,
+      nextSort = sortValue,
+    } = {}) => {
+      try {
+        setTableLoading(true);
+
+        const [sortBy, sortDir] = nextSort.split("_");
+
+        const res = await getAssessmentExamsNew(
+          nextAssessment ? Number(nextAssessment) : 0,
+          nextBuyer ? Number(nextBuyer) : null,
+          nextSearch || "",
+          nextExamstatus ? Number(nextExamstatus) : null,
+          formatDateForApi(nextStartDate),
+          formatDateForApi(nextEndDate),
+          sortBy,
+          sortDir,
+          limit,
+          page,
         );
+
+        if (!res?.success) {
+          throw new Error(res?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
+        }
+
+        setRows(res.data || []);
+        setPagination(
+          res.pagination || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        );
+        setMeta(res.meta || EMPTY_META);
+      } catch (error) {
+        console.error(error);
+        toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
+      } finally {
+        setTableLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching results:", error);
-      messageApi.error("Сервертэй холбогдоход алдаа гарлаа");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [
+      assessment,
+      buyer,
+      debouncedSearch,
+      examstatus,
+      startDate,
+      endDate,
+      sortValue,
+      pagination.limit,
+    ],
+  );
 
   useEffect(() => {
-    fetchAssessments();
-  }, []);
+    fetchData({ page: 1, limit: pagination.limit });
+  }, [
+    debouncedSearch,
+    assessment,
+    buyer,
+    examstatus,
+    startDate,
+    endDate,
+    sortValue,
+    pagination.limit,
+    fetchData,
+  ]);
 
-  useEffect(() => {
-    fetchResults(1, pageSize);
-  }, [selectedAssessment, startDate, endDate]);
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-    fetchResults(1, pageSize, value);
+  const handlePageChange = (nextPage) => {
+    fetchData({ page: nextPage, limit: pagination.limit });
   };
 
-  const handleStartDateChange = (date) => {
-    setStartDate(date);
+  const handleLimitChange = (value) => {
+    fetchData({
+      page: 1,
+      limit: Number(value),
+    });
   };
 
-  const handleEndDateChange = (date) => {
-    setEndDate(date);
-  };
+  const resetFilters = () => {
+    const nextRange = getDefaultDateRange();
 
-  const handleAssessmentChange = (value) => {
-    setSelectedAssessment(value);
-  };
+    setSearchText("");
+    setDebouncedSearch("");
+    setAssessment("");
+    setBuyer("");
+    setExamstatus("");
+    setSortValue(DEFAULT_SORT);
+    setStartDate(nextRange.start);
+    setEndDate(nextRange.end);
 
-  const applySearch = () => {
-    setCurrentPage(1);
-    fetchResults(1, pageSize);
-  };
-
-  const handleTableChange = (pagination, filters) => {
-    setFilteredInfo(filters);
-
-    const paginationChanged =
-      pagination.current !== currentPage || pagination.pageSize !== pageSize;
-
-    if (paginationChanged) {
-      if (pagination.pageSize !== pageSize) {
-        setPageSize(pagination.pageSize);
-      }
-      setCurrentPage(pagination.current);
-      fetchResults(pagination.current, pagination.pageSize);
-    }
+    fetchData({
+      page: 1,
+      limit: DEFAULT_LIMIT,
+      nextAssessment: "",
+      nextBuyer: "",
+      nextSearch: "",
+      nextExamstatus: "",
+      nextStartDate: nextRange.start,
+      nextEndDate: nextRange.end,
+      nextSort: DEFAULT_SORT,
+    });
   };
 
   const exportToExcel = () => {
-    if (examData.length === 0) {
-      messageApi.warning("Экспортлох өгөгдөл олдсонгүй");
+    if (!rows.length) {
+      toast.warning("Экспортлох өгөгдөл олдсонгүй.");
       return;
     }
 
     try {
-      const exportData = examData.map((record, index) => ({
-        "№": index + 1,
-        "Шалгуулагчийн нэр": `${record.firstname} ${record.lastname}`,
-        "Тестийн нэр": record.assessment.name,
-        "Тестийн төрөл": record.assessment?.type
-          ? record.assessment.type === 10
-            ? "Зөв хариулттай"
-            : "Өөрийн үнэлгээ"
-          : "-",
-        "И-мейл хаяг": record.email ? record.email : "-",
-        "Эхэлсэн огноо": new Date(record.userStartDate).toLocaleString(),
-        "Дууссан огноо": record.userEndDate
-          ? new Date(record.userEndDate).toLocaleString()
-          : "-",
-        Байгууллага: record.buyer?.organizationName || "-",
-        Төлөв: record.userEndDate
-          ? "Дууссан"
-          : record.userStartDate && !record.userEndDate
-          ? "Эхэлсэн"
-          : "Өгөөгүй",
-
+      const exportData = rows.map((record, index) => ({
+        "№": (pagination.page - 1) * pagination.limit + index + 1,
+        "Шалгуулагчийн нэр":
+          `${record.firstname || ""} ${record.lastname || ""}`.trim() || "-",
+        "И-мэйл": record.email || "-",
+        Байгууллага: record.buyerOrganizationName || "-",
+        Тест: record.assessmentName || "-",
+        Төлөв: getExamStatusMeta(record.examstatus).label,
+        "Эхэлсэн огноо": formatDate(record.userStartDate, true),
+        "Дууссан огноо": formatDate(record.userEndDate, true),
         "Үр дүн":
-          record.assessment.type === 10 || record.assessment.type === 11
-            ? `${((record.result?.point / record.result?.total) * 100).toFixed(
-                1
-              )}%`
-            : record.result?.result,
-
-        Тайлбар: record.result?.value ? record.result.value : "",
-        ...(record.assessment.type === 10 || record.assessment.type === 11
-          ? {
-              "Авах оноо": record.result?.total || "-",
-            }
-          : {}),
-        ...(record.assessment.type === 10 || record.assessment.type === 11
-          ? {
-              "Авсан оноо": record.result?.point || "-",
-            }
-          : {}),
+          [record.result, record.value].filter(Boolean).join(" / ") || "-",
+        Segment: record.segment || "-",
+        Code: record.code || "-",
+        "Үүссэн огноо": formatDate(record.createdAt, true),
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-      const colWidths = [
-        { wch: 5 }, // №
-        { wch: 25 }, // Шалгуулагчийн нэр
-        { wch: 25 }, // Тестийн нэр
-        { wch: 25 }, // И-мейл хаяг
-        { wch: 20 }, // Эхэлсэн огноо
-        { wch: 20 }, // Дууссан огноо
-        { wch: 25 }, // Байгууллага
-        { wch: 12 }, // Төлөв
-        { wch: 12 }, // Үр дүн
+      worksheet["!cols"] = [
+        { wch: 6 },
+        { wch: 26 },
+        { wch: 28 },
+        { wch: 24 },
+        { wch: 26 },
+        { wch: 14 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 24 },
+        { wch: 16 },
+        { wch: 20 },
       ];
-      worksheet["!cols"] = colWidths;
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Үр дүн");
 
       const date = new Date().toISOString().slice(0, 10);
-      const fileName = `Тест_үр_дүн_${date}.xlsx`;
-
-      XLSX.writeFile(workbook, fileName);
-      messageApi.success("Excel файл амжилттай татагдлаа.");
+      XLSX.writeFile(workbook, `Тест_үр_дүн_${date}.xlsx`);
+      toast.success("Excel файл амжилттай татагдлаа.");
     } catch (error) {
-      console.error("Excel export error:", error);
-      messageApi.error("Excel файл үүсгэхэд алдаа гарлаа.");
+      console.error(error);
+      toast.error("Excel файл үүсгэхэд алдаа гарлаа.");
     }
   };
 
-  const organizationOptions = useMemo(() => {
-    const uniqueOrgs = new Map();
+  const from =
+    pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
+  const to = Math.min(pagination.page * pagination.limit, pagination.total);
 
-    examData.forEach((exam) => {
-      if (
-        exam.buyer?.organizationName &&
-        !uniqueOrgs.has(exam.buyer.organizationName)
-      ) {
-        uniqueOrgs.set(exam.buyer.organizationName, {
-          text: exam.buyer.organizationName,
-          value: exam.buyer.organizationName,
-        });
-      }
-    });
+  const paginationItems = useMemo(
+    () => getPaginationItems(pagination.page, pagination.totalPages || 1),
+    [pagination.page, pagination.totalPages],
+  );
 
-    return Array.from(uniqueOrgs.values());
-  }, [examData]);
+  const assessmentOptions = useMemo(
+    () => [
+      ...(meta?.assessments || []).map((item) => ({
+        value: String(item.id),
+        label: item.name,
+      })),
+    ],
+    [meta?.assessments],
+  );
 
-  const columns = [
-    {
-      title: "№",
-      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
-      width: 60,
-    },
-    {
-      title: "Шалгуулагчийн нэр",
-      key: "name",
-      render: (_, record) => {
-        const firstName = record.firstname || "";
-        const lastName = record.lastname || "";
-        const fullName = `${firstName} ${lastName}`;
-        const firstChar = firstName ? firstName[0] : "";
+  const buyerOptions = useMemo(
+    () => [
+      ...(meta?.buyers || []).map((item) => ({
+        value: String(item.userId),
+        label: item.organizationName,
+      })),
+    ],
+    [meta?.buyers],
+  );
 
-        return (
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-br from-main/50 to-secondary/50 rounded-full blur opacity-30 group-hover:opacity-40 transition duration-300"></div>
-              <div className="relative min-w-10 min-h-10 bg-gradient-to-br from-main/10 to-secondary/10 rounded-full flex items-center justify-center border border-main/10">
-                <div className="text-base font-bold uppercase bg-gradient-to-br from-main to-secondary bg-clip-text text-transparent">
-                  {firstChar}
-                </div>
-              </div>
-            </div>
-            <div className="leading-4">
-              <div className="font-semibold">{fullName}</div>
-              <div className="text-gray-700 text-sm">{record.email || "-"}</div>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Тестийн нэр",
-      dataIndex: ["assessment", "name"],
-      key: "assessmentName",
-      render: (_, record) => (
-        <div className="font-bold text-main">{record.assessment.name}</div>
-      ),
-    },
-    {
-      title: "Эхэлсэн огноо",
-      dataIndex: "userStartDate",
-      key: "userStartDate",
-      render: (date) => (date ? dayjs(date).format("YYYY-MM-DD HH:mm") : "-"),
-      sorter: (a, b) => new Date(a.userStartDate) - new Date(b.userStartDate),
-    },
-    {
-      title: "Дууссан огноо",
-      dataIndex: "userEndDate",
-      key: "userEndDate",
-      render: (date) => (date ? dayjs(date).format("YYYY-MM-DD HH:mm") : "-"),
-      sorter: (a, b) => {
-        if (!a.userEndDate) return 1;
-        if (!b.userEndDate) return -1;
-        return new Date(a.userEndDate) - new Date(b.userEndDate);
-      },
-    },
-    {
-      title: "Байгууллага",
-      dataIndex: ["buyer", "organizationName"],
-      key: "organization",
-      render: (text, record) => {
-        if (!record.buyer?.organizationName) return "-";
-        return (
-          <div className="font-semibold">{record.buyer?.organizationName}</div>
-        );
-      },
-      filters: organizationOptions,
-      filteredValue: filteredInfo.organization || null,
-      onFilter: (value, record) =>
-        record.buyer && record.buyer.organizationName === value,
-    },
-    {
-      title: "Төлөв",
-      key: "status",
-      filters: [
-        { text: "Дууссан", value: "finished" },
-        { text: "Эхэлсэн", value: "unfinished" },
-        { text: "Өгөөгүй", value: "notstarted" },
-      ],
-      filteredValue: filteredInfo.status || null,
-      onFilter: (value, record) => {
-        if (value === "finished") {
-          return !!record.userEndDate;
-        }
-        if (value === "unfinished") {
-          return record.userStartDate && !record.userEndDate;
-        }
-        if (value === "notstarted") {
-          return !record.userStartDate && !record.userEndDate;
-        }
-        return true;
-      },
-      render: (_, record) => {
-        if (record.userEndDate) {
-          return (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-300 to-green-300 border border-green-500 shadow-sm">
-              <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
-              <span className="text-sm font-bold text-emerald-700">
-                Дууссан
-              </span>
-            </div>
-          );
-        } else if (record.userStartDate && !record.userEndDate) {
-          return (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-200 to-blue-100 border border-blue-300 shadow-sm">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-semibold text-blue-700">
-                Эхэлсэн
-              </span>
-            </div>
-          );
-        } else {
-          return (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 shadow-sm">
-              <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-bold text-amber-700">Өгөөгүй</span>
-            </div>
-          );
-        }
-      },
-    },
-    {
-      title: "Үр дүн",
-      dataIndex: "result",
-      key: "result",
-      render: (_, record) => {
-        if (!record.userEndDate) return "-";
-
-        if (!record.result) return "-";
-
-        if (record.assessment.report === 10) {
-          const score = record.result.point ? record.result.point : 0;
-          const totalPoints = record.result.total || 1;
-          const percent = ((score / totalPoints) * 100).toFixed(1);
-
-          return (
-            <div className="flex items-center gap-1">
-              <Progress
-                percent={percent}
-                strokeColor={{
-                  from: "#ED1C45",
-                  to: "#F36421",
-                }}
-              />
-              <span className="text-gray-600">
-                ({score}/{totalPoints})
-              </span>
-            </div>
-          );
-        }
-
-        if (record.assessment.report === 20) {
-          if (record.result && typeof record.result === "object") {
-            return (
-              <div className="flex items-center">
-                <div>{record.result.result || "-"}</div>
-                <span className="px-1">/</span>
-                <div>{record.result.value || "-"}</div>
-              </div>
-            );
-          }
-
-          if (typeof record.result === "string") {
-            return <div className="text-main font-bold">{record.result}</div>;
-          }
-
-          return "-";
-        }
-
-        if (record.assessment.report === 40) {
-          if (record.result && typeof record.result === "object") {
-            return <div>{record.result.result || "-"}</div>;
-          }
-        } else {
-          return (
-            <div>
-              {record.result &&
-                (record.result.result ? `${record.result.result}` : "") +
-                  (record.result.result && record.result.value ? " / " : "") +
-                  (record.result.value ? `${record.result.value}` : "")}
-            </div>
-          );
-        }
-
-        return typeof record.result === "string" ? record.result : "-";
-      },
-      width: "180px",
-    },
-    {
-      title: "Тайлан",
-      key: "action",
-      render: (_, record) =>
-        record.userEndDate &&
-        record.result && (
-          <Tooltip title="Тайлан татах">
-            <Link href={`/api/report/${record.code}`} target="_blank" passHref>
-              <button className="cursor-pointer mx-auto text-main hover:text-secondary flex items-center gap-2 font-semibold">
-                <ClipboardTextBoldDuotone width={18} />
-                Татах
-              </button>
-            </Link>
-          </Tooltip>
-        ),
-      align: "center",
-    },
-  ];
-
-  const generatePDF = async (code) => {
-    try {
-      setLoading(true);
-      const res = await getReport(code);
-
-      if (res.success && res.data) {
-        const blob = new Blob([res.data], { type: "application/pdf" });
-        const url = window.URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `report_${code}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else {
-        messageApi.error("Тайлан татахад алдаа гарлаа.");
-      }
-    } catch (error) {
-      console.error("GET / Aлдаа гарлаа.", error);
-      messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const todayCount = meta?.counts?.today ?? 0;
+  const yesterdayCount = meta?.counts?.yesterday ?? 0;
+  const thisWeekCount = meta?.counts?.thisWeek ?? 0;
+  const lastWeekCount = meta?.counts?.lastWeek ?? 0;
+  const thisMonthCount = meta?.counts?.thisMonth ?? 0;
+  const lastMonthCount = meta?.counts?.lastMonth ?? 0;
 
   return (
-    <ConfigProvider locale={mnMN}>
-      <div className="px-5 py-6">
-        {contextHolder}
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-base font-bold flex items-center gap-2">
-            <FolderFavouriteBookmarkBoldDuotone className="text-main" />
-            Үр дүн
-          </div>
-          <div className="flex gap-2 items-center">
-            <DatePicker
-              onChange={handleStartDateChange}
-              placeholder="Эхлэх огноо"
-              style={{ width: 150 }}
-              value={startDate}
-            />
-            <DatePicker
-              onChange={handleEndDateChange}
-              placeholder="Дуусах огноо"
-              style={{ width: 150 }}
-              value={endDate}
-              disabledDate={(current) =>
-                startDate && current && current < startDate
-              }
-            />
-            <Select
-              showSearch
-              suffixIcon={
-                <DropdownIcon width={15} height={15} color={"#f36421"} />
-              }
-              placeholder="Тест сонгох"
-              style={{ width: 200 }}
-              allowClear
-              value={selectedAssessment}
-              onChange={handleAssessmentChange}
-              options={assessmentOptions}
-              optionFilterProp="label" // will search inside label field of options
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-            />
-            <Input
-              placeholder="И-мэйл хаяг"
-              allowClear
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClear={() => {
-                setSearchTerm("");
-                setCurrentPage(1);
-                fetchResults(1, pageSize, "");
-              }}
-              value={searchTerm}
-              style={{ width: 200 }}
-              onPressEnter={applySearch}
-            />
-            <Button onClick={applySearch} className="the-btn">
-              <MagniferBoldDuotone width={16} />
-              Хайх
-            </Button>
-          </div>
-        </div>
-
-        <div className="mb-4 flex items-center justify-end">
-          <Button className="the-btn" onClick={exportToExcel}>
-            <DownloadBoldDuotone width={16} />
-            Excel татах
-          </Button>
-        </div>
-
-        <Table
-          columns={columns}
-          dataSource={examData}
-          locale={customLocale}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalCount,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", totalCount],
-            onShowSizeChange: (current, size) => {
-              setPageSize(size);
-              fetchResults(current, size);
-            },
-            size: "small",
-            showTotal: (total, range) =>
-              `${range[0]}-ээс ${range[1]} / Нийт ${total}`,
-          }}
-          loading={{
-            spinning: loading,
-            indicator: (
-              <Spin
-                size="default"
-                indicator={
-                  <LoadingOutlined
-                    style={{ color: "#f26522", fontSize: 24 }}
-                    spin
+    <div className="px-5 py-6">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white">
+          <div className="relative p-6 sm:p-8">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_110%_50%,rgba(243,100,33,0.22)_0%,transparent_60%),radial-gradient(ellipse_at_85%_-20%,rgba(250,199,117,0.25)_0%,transparent_50%)]" />
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:gap-12">
+                <div className="shrink-0">
+                  <FolderFavouriteBookmarkBoldDuotone
+                    className="text-main"
+                    width={32}
+                    height={32}
                   />
-                }
-              />
-            ),
-          }}
-          rowKey="id"
-          onChange={handleTableChange}
-        />
-      </div>
-    </ConfigProvider>
-  );
-};
+                  <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-gray-700 sm:text-3xl">
+                    Үр дүн
+                  </h1>
+                </div>
 
-export default Results;
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    {
+                      title: "Өнөөдөр",
+                      current: todayCount,
+                      previous: yesterdayCount,
+                      label: "Өчигдөр",
+                      date: formatDate(new Date()),
+                    },
+                    {
+                      title: "Энэ 7 хоногт",
+                      current: thisWeekCount,
+                      previous: lastWeekCount,
+                      label: "Өмнөх",
+                      date: (() => {
+                        const now = new Date();
+                        const day = now.getDay();
+                        const diffToMonday = day === 0 ? -6 : 1 - day;
+                        const diffToSunday = day === 0 ? 0 : 7 - day;
+
+                        const weekStart = new Date(now);
+                        weekStart.setDate(now.getDate() + diffToMonday);
+
+                        const weekEnd = new Date(now);
+                        weekEnd.setDate(now.getDate() + diffToSunday);
+
+                        return `${formatDate(weekStart).slice(5)}-с ${formatDate(weekEnd).slice(5)}`;
+                      })(),
+                    },
+                    {
+                      title: "Энэ сард",
+                      current: thisMonthCount,
+                      previous: lastMonthCount,
+                      label: `${String(
+                        new Date(
+                          new Date().getFullYear(),
+                          new Date().getMonth() - 1,
+                          1,
+                        ).getMonth() + 1,
+                      ).padStart(2, "0")} сард`,
+                      date:
+                        `${new Date().getFullYear()}-` +
+                        `${String(new Date().getMonth() + 1).padStart(2, "0")} САР`,
+                    },
+                  ].map((stat) => {
+                    const growth = getGrowthMeta(stat.current, stat.previous);
+
+                    return (
+                      <div
+                        key={stat.title}
+                        className="rounded-xl border border-slate-200/70 bg-white/75 px-4 py-2.5 backdrop-blur-sm"
+                      >
+                        <div className="flex items-top justify-between gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                              {stat.title}
+                            </span>
+                            <span className="text-[10px] font-medium tracking-wide text-slate-500 -mt-1">
+                              {stat.date}
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[10px] font-semibold whitespace-nowrap",
+                              growth.positive
+                                ? "text-emerald-600"
+                                : "text-rose-600",
+                            )}
+                          >
+                            {growth.positive ? "↗" : "↘"} {growth.text}
+                          </span>
+                        </div>
+
+                        <div className="mt-0.5 flex items-end gap-1">
+                          <span className="text-2xl font-extrabold leading-none text-slate-900 pr-1">
+                            {stat.current.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-400 uppercase">
+                            <LaptopLineDuotone width={12} height={17} />
+                          </span>
+                          <span className="text-[10px] text-slate-400 uppercase">
+                            {stat.label}{" "}
+                            <span className="font-semibold text-slate-500">
+                              {stat.previous.toLocaleString()}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={exportToExcel}>
+                  <DownloadSquareLineDuotone width={18} />
+                  Excel татах
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="mb-6 flex flex-nowrap items-center gap-2 overflow-x-auto rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+          <div className="flex-1">
+            <SearchInput
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+
+          <FilterSelect
+            value={assessment}
+            onChange={setAssessment}
+            options={assessmentOptions}
+            icon={<NotesBoldDuotone width={18} />}
+            placeholder="Бүх тест"
+            label="Тест сонгох"
+          />
+
+          <FilterSelect
+            value={buyer}
+            onChange={setBuyer}
+            options={buyerOptions}
+            icon={<Buildings2LineDuotone width={18} />}
+            placeholder="Бүх байгууллага"
+            label="Байгууллага сонгох"
+          />
+
+          <SelectFilter
+            value={examstatus}
+            onChange={setExamstatus}
+            options={examStatusOptions}
+            icon={<CheckCircleBoldDuotone width={18} />}
+            placeholder="Төлөв сонгох"
+          />
+
+          <SingleDatePicker
+            value={startDate}
+            onChange={setStartDate}
+            placeholder="Эхлэх огноо"
+          />
+
+          <SingleDatePicker
+            value={endDate}
+            onChange={setEndDate}
+            placeholder="Дуусах огноо"
+            minDate={startDate || undefined}
+          />
+
+          <SelectFilter
+            value={sortValue}
+            onChange={setSortValue}
+            options={sortOptions}
+            icon={<SortFromTopToBottomLineDuotone width={18} />}
+            placeholder="Эрэмбэлэх"
+          />
+        </section>
+
+        {rows.length === 0 && !tableLoading ? (
+          <EmptyState onReset={resetFilters} />
+        ) : (
+          <>
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+              <div className="grid grid-cols-25 gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 font-bold text-slate-800">
+                <div className="col-span-7">Шалгуулагч</div>
+                <div className="col-span-5">Тест</div>
+                <div className="col-span-4">Огноо</div>
+                <div className="col-span-3 text-center">Төлөв</div>
+                <div className="col-span-4">Үр дүн</div>
+                <div className="col-span-2 text-center">Тайлан</div>
+              </div>
+
+              {tableLoading ? (
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </>
+              ) : (
+                rows.map((item) => {
+                  const statusMeta = getExamStatusMeta(item.examstatus);
+                  const fullName =
+                    `${item.firstname || ""} ${item.lastname || ""}`.trim() ||
+                    "-";
+                  return (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-25 gap-4 border-t border-slate-100 px-5 py-4 transition hover:bg-slate-50"
+                    >
+                      <div className="col-span-7 flex min-w-0 items-center">
+                        <div className="flex items-start gap-3">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="rounded-xl bg-slate-100 px-2 py-1 text-main">
+                              <UserIdLineDuotone width={18} />
+                            </div>
+
+                            {item.isInvited && (
+                              <div className="rounded-lg px-2 pt-2 text-blue-600">
+                                <Buildings2LineDuotone width={16} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="truncate font-bold text-slate-900">
+                              {item.email}
+                            </div>
+
+                            <div className="mt-0.5 truncate text-[13px] text-slate-600">
+                              {fullName}
+                            </div>
+
+                            {item.isInvited && (
+                              <div className="mt-1 text-[13px] font-semibold text-blue-700 leading-4">
+                                {item.buyerOrganizationName}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-5 flex min-w-0 pr-5 flex-col justify-center">
+                        <div className="font-bold text-main">
+                          {item.assessmentName || "-"}
+                        </div>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <DocumentAddLineDuotone width={14} />
+                          <span className="text-slate-700 text-[13px]">
+                            {formatDate(item.createdAt, true)}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="col-span-4 flex flex-col justify-center gap- text-[13px] text-slate-600">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CursorSquareLineDuotone width={14} />
+                          <span className="text-slate-700">
+                            {item.userStartDate
+                              ? formatDate(item.userStartDate, true)
+                              : "-"}
+                          </span>
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <CheckCircleLineDuotone width={14} />
+                          <span className="text-slate-700">
+                            {item.userEndDate
+                              ? formatDate(item.userEndDate, true)
+                              : "-"}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="col-span-3 flex items-center justify-center">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full border px-2.5 py-1 text-[13px] font-medium",
+                            statusMeta.className,
+                          )}
+                        >
+                          {statusMeta.label}
+                        </span>
+                      </div>
+
+                      <div className="col-span-4 flex flex-col justify-center">
+                        {renderResult(item)}
+                        {!item.visible && (
+                          <span
+                            className={`${item.assessmentType === 10 && "mt-1"} inline-flex items-center gap-1 text-[13px] text-slate-400`}
+                          >
+                            <EyeClosedLineDuotone width={14} />
+                            Нуусан
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="col-span-2 flex items-center justify-center">
+                        {Number(item.examstatus) === EXAM_STATUS.FINISHED ? (
+                          <a
+                            href={`/api/report/${item.code}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 font-semibold text-main hover:text-red-500"
+                          >
+                            <EyeBoldDuotone width={18} />
+                          </a>
+                        ) : (
+                          <span className="text-sm text-slate-400">-</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </section>
+
+            <section className="mb-2 mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="text-slate-600">
+                {from}-с {to} / Нийт {pagination.total} үр дүн
+              </div>
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
+                <Select
+                  value={String(pagination.limit)}
+                  onValueChange={handleLimitChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+
+                  <SelectContent position="popper" side="top" align="end">
+                    <SelectGroup>
+                      {[10, 20, 50, 100].map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size} / хуудас
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (pagination.page > 1 && !tableLoading) {
+                            handlePageChange(pagination.page - 1);
+                          }
+                        }}
+                        className={
+                          pagination.page <= 1 || tableLoading
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+
+                    {paginationItems.map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`ellipsis-${idx}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagination.page === item}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (item !== pagination.page && !tableLoading) {
+                                handlePageChange(item);
+                              }
+                            }}
+                            className={
+                              tableLoading
+                                ? "pointer-events-none opacity-50"
+                                : "cursor-pointer"
+                            }
+                          >
+                            {item}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (
+                            pagination.page < pagination.totalPages &&
+                            !tableLoading
+                          ) {
+                            handlePageChange(pagination.page + 1);
+                          }
+                        }}
+                        className={
+                          pagination.page >= pagination.totalPages ||
+                          tableLoading
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
