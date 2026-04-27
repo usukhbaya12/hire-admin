@@ -1,18 +1,75 @@
 "use client";
 
-import { Modal, Form, Input, Button, Tooltip, Divider, message } from "antd";
-import { KeyBoldDuotone, QuestionCircleBoldDuotone } from "solar-icons";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { handlePasswordChange } from "@/app/api/constant";
-import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "../ui/field";
+import { Spinner } from "../ui/spinner";
+
+const formSchema = z
+  .object({
+    oldPassword: z.string().min(1, "Одоогийн нууц үгээ оруулна уу."),
+    newPassword: z
+      .string()
+      .min(1, "Шинэ нууц үгээ оруулна уу.")
+      .min(6, "Багадаа 6 тэмдэгт оруулна уу."),
+    confirmPassword: z.string().min(1, "Нууц үгээ давтан оруулна уу."),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: "Нууц үг тохирохгүй байна.",
+    path: ["confirmPassword"],
+  });
 
 const PasswordModal = ({ isOpen, onClose }) => {
-  const [passwordForm] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
-  const handlePasswordSubmit = async (values) => {
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    clearErrors,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  useEffect(() => {
+    if (!isOpen) {
+      reset();
+      clearErrors();
+    }
+  }, [isOpen, reset, clearErrors]);
+
+  const onSubmit = async (values) => {
     try {
-      setLoading(true);
+      clearErrors("root");
 
       const requestData = JSON.stringify({
         oldPassword: values.oldPassword,
@@ -22,151 +79,135 @@ const PasswordModal = ({ isOpen, onClose }) => {
       const result = await handlePasswordChange(requestData);
 
       if (result.success) {
-        messageApi.success("Нууц үг амжилттай солигдсон.");
+        toast.success("Нууц үг амжилттай солигдсон.");
+        reset();
         onClose();
-        passwordForm.resetFields();
-      } else {
-        messageApi.error(result.message || "Алдаа гарлаа.");
+        return;
       }
+
+      const message = result.message || "Алдаа гарлаа.";
+      setError("root", {
+        type: "server",
+        message: result.message || "Алдаа гарлаа.",
+      });
+      toast.error(message);
     } catch (error) {
       console.error("Password change error:", error);
-      messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
-    } finally {
-      setLoading(false);
+
+      const message = "Сервертэй холбогдоход алдаа гарлаа.";
+
+      setError("root", {
+        type: "server",
+        message,
+      });
+
+      toast.error(message);
     }
   };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
   return (
-    <Modal
-      title={
-        <div className="flex items-center gap-2">
-          <KeyBoldDuotone className="text-main" width={20} />
-          <span>Нууц үг солих</span>
-        </div>
-      }
+    <Dialog
       open={isOpen}
-      onCancel={onClose}
-      footer={null}
-      width={380}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
     >
-      {contextHolder}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Нууц үг солих</DialogTitle>
+          <DialogDescription>Багадаа 6 тэмдэгт оруулна уу.</DialogDescription>
+        </DialogHeader>
 
-      <Divider className="modal-div" />
-      <Form
-        form={passwordForm}
-        layout="vertical"
-        onFinish={handlePasswordSubmit}
-      >
-        <Form.Item
-          name="oldPassword"
-          label={<span className="font-medium">Одоогийн нууц үг</span>}
-          rules={[
-            {
-              required: true,
-              message: "Одоогийн нууц үгээ оруулна уу.",
-            },
-          ]}
-        >
-          <Input.Password
-            prefix={
-              <KeyBoldDuotone
-                width={16}
-                height={16}
-                className="text-gray-400 mr-2"
-              />
-            }
-            className="rounded-lg py-2"
-          />
-        </Form.Item>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <FieldGroup>
+            <Controller
+              name="oldPassword"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="password-old">
+                    Одоогийн нууц үг
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id="password-old"
+                    type="password"
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
-        <Form.Item
-          name="newPassword"
-          label={
-            <div className="flex items-center justify-between gap-1">
-              <span className="font-medium">Шинэ нууц үг</span>
-              <Tooltip title="Багадаа 6 тэмдэгт оруулна уу.">
-                <QuestionCircleBoldDuotone
-                  width={16}
-                  height={16}
-                  className="text-gray-400 cursor-help"
-                />
-              </Tooltip>
-            </div>
-          }
-          rules={[
-            {
-              required: true,
-              message: "Шинэ нууц үгээ оруулна уу.",
-            },
-            {
-              min: 6,
-              message: "Багадаа 6 тэмдэгт оруулна уу.",
-            },
-          ]}
-        >
-          <Input.Password
-            prefix={
-              <KeyBoldDuotone
-                width={16}
-                height={16}
-                className="text-gray-400 mr-2"
-              />
-            }
-            className="rounded-lg py-2"
-          />
-        </Form.Item>
+            <Controller
+              name="newPassword"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <div>
+                    <FieldLabel htmlFor="password-new">Шинэ нууц үг</FieldLabel>
+                  </div>
 
-        <Form.Item
-          name="confirmPassword"
-          label={<span className="font-medium">Шинэ нууц үгээ давтах</span>}
-          dependencies={["newPassword"]}
-          rules={[
-            {
-              required: true,
-              message: "Нууц үгээ давтан оруулна уу.",
-            },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value || getFieldValue("newPassword") === value) {
-                  return Promise.resolve();
-                }
-                return Promise.reject(new Error("Нууц үг тохирохгүй байна."));
-              },
-            }),
-          ]}
-        >
-          <Input.Password
-            prefix={
-              <KeyBoldDuotone
-                width={16}
-                height={16}
-                className="text-gray-400 mr-2"
-              />
-            }
-            className="rounded-lg py-2"
-          />
-        </Form.Item>
+                  <Input
+                    {...field}
+                    id="password-new"
+                    type="password"
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
-        <div className="flex gap-3 justify-end mt-6">
-          <Button
-            className="back-btn"
-            onClick={() => {
-              onClose();
-              passwordForm.resetFields();
-            }}
-          >
-            Буцах
-          </Button>
-          <Button
-            className="the-btn"
-            loading={loading}
-            htmlType="submit"
-            type="primary"
-          >
-            Нууц үг солих
-          </Button>
-        </div>
-      </Form>
-    </Modal>
+            <Controller
+              name="confirmPassword"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="password-confirm">
+                    Шинэ нууц үгээ давтах
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id="password-confirm"
+                    type="password"
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          </FieldGroup>
+
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
+              Буцах
+            </Button>
+
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Spinner data-icon="inline-start" />}
+              Нууц үг солих
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

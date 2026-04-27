@@ -159,6 +159,7 @@ const EBarimtModal = ({
               onCancel={() => setConfirmModal(false)}
               loading={loading}
               text="Та энэ баримтыг буцаахдаа итгэлтэй байна уу?"
+              title="Баримт буцаах"
             />
           </>
         ) : (

@@ -351,6 +351,98 @@ export const getAssessmentExams = async (
   }
 };
 
+export const getAssessmentExamsNew = async (
+  assessment = 0,
+  buyer = null,
+  email = "",
+  examstatus = null,
+  startDate = null,
+  endDate = null,
+  sortBy = "createdAt",
+  sortDir = "DESC",
+  limit = 20,
+  page = 1,
+) => {
+  try {
+    const token = await getAuthToken();
+    if (!token) return { token: false };
+
+    const params = new URLSearchParams({
+      limit: String(limit),
+      page: String(page),
+      sortBy: String(sortBy),
+      sortDir: String(sortDir),
+    });
+
+    if (assessment) params.append("assessment", String(assessment));
+    if (buyer) params.append("buyer", String(buyer));
+    if (email?.trim()) params.append("email", email.trim());
+    if (examstatus) params.append("examstatus", String(examstatus));
+    if (startDate) params.append("startDate", String(startDate));
+    if (endDate) params.append("endDate", String(endDate));
+
+    const res = await fetch(`${api}exam/allNew?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }).then((d) => d.json());
+
+    const payload = res?.payload || res;
+
+    return {
+      success: !!(res?.succeed ?? true),
+      data: payload?.data || [],
+      pagination: payload?.pagination || {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+      },
+      meta: payload?.meta || {
+        assessments: [],
+        buyers: [],
+        counts: {
+          today: 0,
+          yesterday: 0,
+          thisWeek: 0,
+          lastWeek: 0,
+          thisMonth: 0,
+          lastMonth: 0,
+        },
+      },
+      message: res?.message,
+      status: res?.status,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      data: [],
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+      },
+      meta: {
+        assessments: [],
+        buyers: [],
+        counts: {
+          today: 0,
+          yesterday: 0,
+          thisWeek: 0,
+          lastWeek: 0,
+          thisMonth: 0,
+          lastMonth: 0,
+        },
+      },
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
 export const getFeedback = async ({
   type,
   page = 1,

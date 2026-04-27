@@ -1,31 +1,36 @@
-import { Modal, Button } from "antd";
+"use client";
+
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogMedia,
+} from "@/components/ui/alert-dialog";
 import { ShieldBoldDuotone } from "solar-icons";
 
-const OkModal = ({ open, onOk, onCancel, text }) => {
+const OkModal = ({ open, onOk, text, title = "Мэдэгдэл" }) => {
   return (
-    <Modal
-      width="420px"
-      //title="Анхааруулга"
-      open={open}
-      onOk={onOk}
-      onCancel={onCancel}
-      footer={null}
-    >
-      <div className="text-main flex justify-center pt-6">
-        <ShieldBoldDuotone width={60} height={60} />
-      </div>
-      <p className="pt-4 pb-2 text-center leading-5">{text}</p>
-      <div className="flex gap-3 justify-end mt-6">
-        <Button
-          onClick={onOk}
-          className="the-btn"
-          htmlType="submit"
-          type="primary"
-        >
-          Ойлголоо
-        </Button>
-      </div>
-    </Modal>
+    <AlertDialog open={open}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogMedia className="bg-main/10 text-main">
+            <ShieldBoldDuotone />
+          </AlertDialogMedia>
+
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+
+          <AlertDialogDescription>{text}</AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter single>
+          <AlertDialogAction onClick={onOk}>Ойлголоо</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 
