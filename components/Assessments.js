@@ -995,7 +995,7 @@ export default function TestsPageClient({
 
                     <SelectContent position="popper" side="top" align="end">
                       <SelectGroup>
-                        {[10, 20, 50, pagination.total].map((size) => (
+                        {[10, 20, 50, 100].map((size) => (
                           <SelectItem key={size} value={String(size)}>
                             {size} / хуудас
                           </SelectItem>
