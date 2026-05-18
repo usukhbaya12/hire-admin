@@ -632,7 +632,7 @@ const BlogEditor = () => {
   return (
     <div className="flex flex-col">
       {contextHolder}
-      <div className="fixed w-full top-0 z-40 bg-white">
+      <div className="fixed w-full top-0 z-40 bg-white mt-[66px]">
         <Header />
         <div className="flex border-b border-neutral pl-8 pr-11 justify-between items-end fixed w-full bg-white z-10">
           <div className="flex gap-6">
