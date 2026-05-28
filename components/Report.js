@@ -381,6 +381,7 @@ const Report = ({
     { label: "Архи", value: 320 },
     { label: "Нойргүйдэл", value: 330 },
     { label: "Өөртөө итгэх итгэл", value: 340 },
+    { label: "AI", value: 350 },
   ];
 
   const handleReportTypeChange = (value) => {
