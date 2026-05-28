@@ -160,16 +160,16 @@ const IconRedo = () => <UndoRightRoundBold width={20} />;
 const useUploader = (messageApi) => {
   const upload = async (file, type = "image") => {
     const isVideo = type === "video";
-    const videoSizeLimit = 5 * 1024 * 1024; // 5MB
-    const imageSizeLimit = 1024 * 1024; // 1MB
+    const videoSizeLimit = 50 * 1024 * 1024; // 50MB
+    const imageSizeLimit = 3 * 1024 * 1024; // 3MB
 
     if (isVideo && file.size > videoSizeLimit) {
-      messageApi.error("5MB-с ихгүй хэмжээтэй бичлэг оруулна уу.");
+      messageApi.error("50MB-с ихгүй хэмжээтэй бичлэг оруулна уу.");
       return null;
     }
 
     if (!isVideo && file.size > imageSizeLimit) {
-      messageApi.error("1MB-с ихгүй хэмжээтэй зураг оруулна уу.");
+      messageApi.error("3MB-с ихгүй хэмжээтэй зураг оруулна уу.");
       return null;
     }
 
