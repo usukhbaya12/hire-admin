@@ -3,7 +3,7 @@ name: Build & Push ADMIN (dev)
 on:
   push:
     branches:
-      - feature-v1.1.0
+      - feature/v1.1.0
 
 env:
   REGISTRY: ghcr.io
