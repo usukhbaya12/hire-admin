@@ -814,6 +814,30 @@ const Settings = ({
           />
           <span>Хариултууд холих</span>
         </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Блок хоорондын шилжилт</div>
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.blockNavigation ?? true}
+            onChange={(checked) =>
+              handleFieldChange("blockNavigation", checked)
+            }
+          />
+          <span>Шалгуулагч блокуудын хооронд чөлөөтэй шилжих боломжтой</span>
+        </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Дүн харуулах</div>
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.showResultOnComplete ?? false}
+            onChange={(checked) =>
+              handleFieldChange("showResultOnComplete", checked)
+            }
+          />
+          <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
+        </div>
       </div>
     </div>
   );

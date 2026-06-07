@@ -18,7 +18,9 @@ import {
   CalendarBoldDuotone,
   MagniferLineDuotone,
   MagniferBoldDuotone,
+  QrCodeBoldDuotone,
 } from "solar-icons";
+import QrModal from "./modals/Qr";
 import { getAssessmentExams } from "@/app/api/constant";
 import { getAssessments } from "@/app/api/assessment";
 import dayjs from "dayjs";
@@ -33,6 +35,8 @@ import Link from "next/link";
 const Results = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrCode, setQrCode] = useState(null);
   const [examData, setExamData] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -451,6 +455,26 @@ const Results = () => {
         ),
       align: "center",
     },
+    {
+      title: "QR",
+      key: "qr",
+      render: (_, record) =>
+        record.code ? (
+          <Tooltip title="QR код харах">
+            <button
+              onClick={() => {
+                setQrCode(record.code);
+                setQrOpen(true);
+              }}
+              className="cursor-pointer mx-auto text-main hover:text-secondary flex items-center gap-2 font-semibold"
+            >
+              <QrCodeBoldDuotone width={18} />
+              QR
+            </button>
+          </Tooltip>
+        ) : null,
+      align: "center",
+    },
   ];
 
   const generatePDF = async (code) => {
@@ -485,6 +509,11 @@ const Results = () => {
     <ConfigProvider locale={mnMN}>
       <div className="px-5 py-6">
         {contextHolder}
+        <QrModal
+          visible={qrOpen}
+          onClose={() => setQrOpen(false)}
+          code={qrCode}
+        />
         <div className="flex justify-between items-center mb-4">
           <div className="text-base font-bold flex items-center gap-2">
             <FolderFavouriteBookmarkBoldDuotone className="text-main" />

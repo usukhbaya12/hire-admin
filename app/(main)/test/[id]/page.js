@@ -18,6 +18,7 @@ import Questions from "@/components/test-ui/Questions";
 import LoadingSpinner from "@/components/Loading";
 import Settings from "@/components/Settings";
 import Report from "@/components/Report";
+import BranchingRules from "@/components/modals/BranchingRules";
 
 export default function Test() {
   const [assessmentData, setAssessmentData] = useState(null);
@@ -47,6 +48,7 @@ export default function Test() {
   ]);
 
   const [activeKey, setActiveKey] = useState("1");
+  const [branchingOpen, setBranchingOpen] = useState(false);
 
   const handleTabClick = (key) => {
     setActiveKey(key);
@@ -382,7 +384,7 @@ export default function Test() {
                   orderNumber: question.order,
                   point: question.question.point,
                   file: question.question.file || null,
-                  required: question.question.required || true,
+                  required: question.question.required ?? true,
                   slider: question.question.slider || null,
                 },
                 answers: formatAnswers(question),
@@ -398,7 +400,7 @@ export default function Test() {
                   point: question.question?.point || null,
                   orderNumber: question.order,
                   file: question.question.file || null,
-                  required: question.question.required || true,
+                  required: question.question.required ?? true,
                   slider: question.question.slider || null,
                 },
                 answers: formatAnswers(question),
@@ -471,6 +473,11 @@ export default function Test() {
   return (
     <>
       {contextHolder}
+      <BranchingRules
+        visible={branchingOpen}
+        onClose={() => setBranchingOpen(false)}
+        questions={assessmentQuestions}
+      />
       <div className="flex border-b border-neutral pl-8 pr-11 justify-between items-end fixed w-full bg-white z-10">
         <div className="flex gap-6">
           <div className="flex gap-6">
@@ -508,6 +515,9 @@ export default function Test() {
                 })()}
             </div>
           </div>
+          <Button className="back-btn" onClick={() => setBranchingOpen(true)}>
+            Алгасах дүрэм
+          </Button>
           <Button
             className="back-btn"
             onClick={() => window.open(`/preview/${params.id}`)}

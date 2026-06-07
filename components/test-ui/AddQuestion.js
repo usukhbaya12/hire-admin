@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Button, Tooltip, message } from "antd";
+import { Button, Tooltip, Switch, message } from "antd";
 import QuestionEditor from "./QuestionEditor";
 import AnswerOptions from "./AnswerOptions";
 import { useSortable } from "@dnd-kit/sortable";
@@ -226,6 +226,19 @@ const AddQuestion = ({
             setEditingOptionIndex={setEditingOptionIndex}
           />
         </div>
+
+        {selected && (
+          <div className="pl-20 pr-2 pt-3 flex items-center gap-2 text-sm text-gray-500">
+            <Switch
+              size="small"
+              checked={question.question.required ?? true}
+              onChange={(checked) =>
+                handleQuestionUpdate({ required: checked })
+              }
+            />
+            <span>Заавал бөглөх</span>
+          </div>
+        )}
       </div>
     </>
   );

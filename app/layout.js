@@ -49,12 +49,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <Provider>
-        <body className={`${GIP.variable} antialiased overscroll-y-none`}>
+      <body className={`${GIP.variable} antialiased overscroll-y-none`}>
+        <Provider>
           <AntdRegistry>{children}</AntdRegistry>
           <Toaster position="top-center" />
-        </body>
-      </Provider>
+        </Provider>
+      </body>
     </html>
   );
 }
