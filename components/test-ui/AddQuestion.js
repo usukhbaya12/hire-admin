@@ -233,7 +233,7 @@ const AddQuestion = ({
               size="small"
               checked={question.question.required ?? true}
               onChange={(checked) =>
-                handleQuestionUpdate({ required: checked })
+                handleQuestionUpdate({ question: { required: checked } })
               }
             />
             <span>Заавал бөглөх</span>
