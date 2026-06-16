@@ -819,7 +819,7 @@ const Settings = ({
         <div className="flex items-center gap-2 mb-4">
           <Switch
             size="small"
-            checked={assessmentData?.data.blockNavigation ?? true}
+            checked={assessmentData?.data.blockNavigation ?? false}
             onChange={(checked) =>
               handleFieldChange("blockNavigation", checked)
             }
