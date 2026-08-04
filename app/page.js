@@ -1,33 +1,46 @@
-import React from "react";
 import Menu from "@/components/Menu";
-import Assessments from "@/components/Assessments";
-
-import { getAssessments, getAssessmentCategory } from "@/app/api/assessment";
+import TestsPageClient from "@/components/Assessments";
+import { getAssessmentsNew, getAssessmentCategory } from "@/app/api/assessment";
 import Header from "@/components/Header";
 
-export default async function Home() {
-  const assessmentsRes = await getAssessments();
-  const categoriesRes = await getAssessmentCategory();
+export default async function AssessmentPage() {
+  const [assessmentsRes, categoriesRes] = await Promise.all([
+    getAssessmentsNew({
+      page: 1,
+      limit: 10,
+      sortBy: "updatedAt",
+      sortDir: "DESC",
+    }),
+    getAssessmentCategory(),
+  ]);
 
-  const sortedAssessments = (assessmentsRes.data?.data || []).sort(
-    (a, b) =>
-      new Date(b.data.createdAt).getTime() -
-      new Date(a.data.createdAt).getTime()
-  );
-  const categories = categoriesRes.data || [];
+  const initialData = assessmentsRes?.success
+    ? assessmentsRes.data
+    : {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+
+  const categories = categoriesRes?.success ? categoriesRes.data || [] : [];
 
   return (
     <>
       <div className="fixed w-full top-0 z-10 bg-white">
         <Header />
       </div>
-      <div className="flex mt-[63px]">
+      <div className="flex pt-[66px]">
         <div className="fixed">
           <Menu />
         </div>
+
         <div className="flex-grow ml-[220px]">
-          <Assessments
-            initialAssessments={sortedAssessments}
+          <TestsPageClient
+            initialData={initialData}
             initialCategories={categories}
           />
         </div>

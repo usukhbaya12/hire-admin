@@ -64,7 +64,7 @@ const ResultConfiguration = ({
       assessmentQuestions,
       groupByEnabled,
       null,
-      aggregations
+      aggregations,
     );
   };
 
@@ -73,7 +73,7 @@ const ResultConfiguration = ({
       assessmentQuestions,
       groupByEnabled,
       groupName,
-      aggregations
+      aggregations,
     );
   };
 
@@ -135,7 +135,7 @@ const ResultConfiguration = ({
         ];
         groups.forEach((groupName) => {
           newGroupIntervals[groupName] = JSON.parse(
-            JSON.stringify(uniformInterval)
+            JSON.stringify(uniformInterval),
           );
         });
       } else {
@@ -401,7 +401,7 @@ const ResultConfiguration = ({
 
   const classifyValue = (value, intervalsToUse) => {
     const interval = intervalsToUse.find(
-      (i) => value >= i.start && value <= i.end
+      (i) => value >= i.start && value <= i.end,
     );
     return interval
       ? { label: interval.label, short: interval.shortLabel }
@@ -454,6 +454,7 @@ const ResultConfiguration = ({
       <div className="space-y-4">
         <div>
           <Radio.Group
+            disabled
             value={configurationType}
             onChange={(e) => setConfigurationType(e.target.value)}
           >
@@ -474,7 +475,8 @@ const ResultConfiguration = ({
                   <Radio value="byCategory">Ангилал тус бүрээр</Radio>
                   <Radio
                     value="grouped"
-                    disabled={!canCreateGroupedIntervals()}
+                    disabled
+                    // disabled={!canCreateGroupedIntervals()}
                   >
                     Бүлгээр нь интервалд хуваах
                     {!canCreateGroupedIntervals() && (
@@ -617,7 +619,7 @@ const ResultConfiguration = ({
                     <span className="text-main font-bold">
                       {
                         getMinMaxForGroup(
-                          Object.keys(formattedResults.grouped)[0]
+                          Object.keys(formattedResults.grouped)[0],
                         ).min
                       }
                     </span>
@@ -625,7 +627,7 @@ const ResultConfiguration = ({
                     <span className="text-main font-bold">
                       {
                         getMinMaxForGroup(
-                          Object.keys(formattedResults.grouped)[0]
+                          Object.keys(formattedResults.grouped)[0],
                         ).max
                       }
                     </span>{" "}
@@ -635,7 +637,7 @@ const ResultConfiguration = ({
                   <Button
                     onClick={() => {
                       const firstGroup = Object.keys(
-                        formattedResults.grouped
+                        formattedResults.grouped,
                       )[0];
                       addInterval(firstGroup);
                     }}
@@ -686,7 +688,7 @@ const ResultConfiguration = ({
                               index,
                               "label",
                               e.target.value,
-                              firstGroup
+                              firstGroup,
                             )
                           }
                           placeholder="Ангилал"
@@ -747,7 +749,7 @@ const ResultConfiguration = ({
                                     index,
                                     "start",
                                     value,
-                                    groupName
+                                    groupName,
                                   )
                                 }
                                 placeholder="0"
@@ -779,7 +781,7 @@ const ResultConfiguration = ({
                                     index,
                                     "label",
                                     e.target.value,
-                                    groupName
+                                    groupName,
                                   )
                                 }
                                 placeholder="Ангилал"
@@ -795,11 +797,11 @@ const ResultConfiguration = ({
                                 />
                               )}
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                       {Object.keys(formattedResults.grouped).indexOf(
-                        groupName
+                        groupName,
                       ) <
                         Object.keys(formattedResults.grouped).length - 1 && (
                         <Divider className="mt-6!" />
