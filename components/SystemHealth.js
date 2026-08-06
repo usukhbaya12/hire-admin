@@ -93,6 +93,7 @@ const SystemHealth = () => {
   const redis = data?.redis || {};
   const services = data?.services || {};
   const app = data?.app || {};
+  const flows = data?.flows || {};
 
   return (
     <ConfigProvider locale={mnMN}>
@@ -286,6 +287,63 @@ const SystemHealth = () => {
                   />
                 </Col>
               </Row>
+            </Card>
+          </Col>
+
+          {/* Critical flows */}
+          <Col xs={24}>
+            <div className="text-sm font-bold text-gray-600 mt-2 mb-1">
+              Чухал урсгалууд
+            </div>
+          </Col>
+
+          <Col xs={24} md={8}>
+            <Card title="Төлбөр (QPay)" size="small">
+              <Statistic
+                title={`Гацсан PENDING (${flows.payment?.stuckThresholdMin ?? 30}+ мин)`}
+                value={flows.payment?.stuckPending ?? 0}
+                valueStyle={
+                  flows.payment?.stuckPending > 0
+                    ? { color: "#ff4d4f" }
+                    : undefined
+                }
+              />
+              <div className="text-xs text-gray-400 mt-2">
+                Өнөөдөр: {flows.payment?.todaySuccess ?? 0} амжилттай /{" "}
+                {flows.payment?.todayTotal ?? 0} нийт
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} md={8}>
+            <Card title="Тайлан үүсгэх (PDF/S3)" size="small">
+              <Statistic
+                title={`Гацсан (${flows.report?.stuckThresholdMin ?? 15}+ мин)`}
+                value={flows.report?.stuck ?? 0}
+                valueStyle={
+                  flows.report?.stuck > 0 ? { color: "#ff4d4f" } : undefined
+                }
+              />
+              <div className="text-xs text-gray-400 mt-2">
+                Алдаатай (өнөөдөр): {flows.report?.failedToday ?? 0}
+              </div>
+            </Card>
+          </Col>
+
+          <Col xs={24} md={8}>
+            <Card title="Шалгалт өгөх/илгээх" size="small">
+              <Statistic
+                title="Алдаа (сүүлийн 24 цаг)"
+                value={flows.exam?.errorsLast24h ?? 0}
+                valueStyle={
+                  flows.exam?.errorsLast24h > 0
+                    ? { color: "#faad14" }
+                    : undefined
+                }
+              />
+              <div className="text-xs text-gray-400 mt-2">
+                /exam, /userAnswer route-д гарсан алдаа
+              </div>
             </Card>
           </Col>
         </Row>
