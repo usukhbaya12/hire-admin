@@ -744,6 +744,36 @@ export const getEmails = async ({
   }
 };
 
+export const getHealthMetrics = async () => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+
+  try {
+    const res = await fetch(`${api}health/metrics`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
 export const getErrorLogs = async (page = 1, limit = 10, status = null) => {
   const token = await getAuthToken();
   if (!token) return { token: false };

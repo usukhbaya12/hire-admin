@@ -8,6 +8,7 @@ import { DropdownIcon, MenuIcon } from "./Icons";
 import { Divider } from "antd";
 import {
   ClipboardTextBoldDuotone,
+  DatabaseBoldDuotone,
   FolderFavouriteBookmarkBoldDuotone,
   HandShakeBoldDuotone,
   LetterBoldDuotone,
@@ -87,6 +88,12 @@ const Menu = () => {
     // Зөвхөн супер админд (role=10) харагдана
     ...(session?.user?.role === 10
       ? [
+          {
+            name: "Ачаалал",
+            key: "health",
+            href: "/health",
+            icon: <DatabaseBoldDuotone width={18} />,
+          },
           {
             name: "Алдааны лог",
             key: "error-logs",
