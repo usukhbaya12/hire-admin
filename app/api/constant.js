@@ -744,6 +744,40 @@ export const getEmails = async ({
   }
 };
 
+export const getErrorLogs = async (page = 1, limit = 10, status = null) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+
+  try {
+    let url = `${api}error-log?page=${page}&limit=${limit}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
 export const getContact = async (page = 1, limit = 10, type = null) => {
   const token = await getAuthToken();
   if (!token) return { token: false };

@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DropdownIcon, MenuIcon } from "./Icons";
 import { Divider } from "antd";
 import {
+  ClipboardTextBoldDuotone,
   FolderFavouriteBookmarkBoldDuotone,
   HandShakeBoldDuotone,
   LetterBoldDuotone,
@@ -18,6 +20,7 @@ import {
 
 const Menu = () => {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [openMenu, setOpenMenu] = useState(null);
 
   const menuItems = [
@@ -81,6 +84,17 @@ const Menu = () => {
       ],
       icon: <HandShakeBoldDuotone width={18} />,
     },
+    // Зөвхөн супер админд (role=10) харагдана
+    ...(session?.user?.role === 10
+      ? [
+          {
+            name: "Алдааны лог",
+            key: "error-logs",
+            href: "/error-logs",
+            icon: <ClipboardTextBoldDuotone width={18} />,
+          },
+        ]
+      : []),
   ];
 
   const isActive = (href) => pathname === href;
