@@ -515,27 +515,25 @@ const Settings = ({
   };
 
   const renderGeneral = () => {
-    const handleChange = async (info) => {
-      if (info.file.status === "uploading") {
-        setLoading(true);
-        return;
-      }
+    const handleImageUpload = async ({ file, onSuccess, onError }) => {
+      setLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("files", file);
+        const res = await imageUploader(formData);
 
-      if (info.file.status === "done") {
-        try {
-          const formData = new FormData();
-          formData.append("files", info.file.originFileObj);
-          const res = await imageUploader(formData);
-
-          if (res && res[0]) {
-            setImageUrl(res[0]);
-            handleFieldChange("icons", res[0]);
-          }
-        } catch (error) {
-          messageApi.error("Зураг хуулахад алдаа гарлаа");
-        } finally {
-          setLoading(false);
+        if (res && res[0]) {
+          setImageUrl(res[0]);
+          handleFieldChange("icons", res[0]);
+          onSuccess(res[0], file);
+        } else {
+          throw new Error("Upload failed");
         }
+      } catch (error) {
+        messageApi.error("Зураг хуулахад алдаа гарлаа");
+        onError(error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -609,7 +607,7 @@ const Settings = ({
               accept="image/*"
               listType="picture"
               maxCount={1}
-              onChange={handleChange}
+              customRequest={handleImageUpload}
               defaultFileList={
                 imageUrl
                   ? [

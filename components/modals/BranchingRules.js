@@ -33,14 +33,27 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   const [targetQuestionId, setTargetQuestionId] = useState(null);
   const [dependsOnQuestionId, setDependsOnQuestionId] = useState(null);
   const [dependsOnAnswerId, setDependsOnAnswerId] = useState(null);
+  const [blockFilter, setBlockFilter] = useState(null);
 
-  // Бүх блокийн асуултыг нэг жагсаалт болгож хавтгайруулна.
+  // Блок бүрийн нэрийг хадгална (сонголтын жагсаалт болон хүснэгтэд ашиглана).
+  const blocks = useMemo(() => {
+    if (!Array.isArray(questions)) return [];
+    return questions.map((block) => ({
+      id: block.category?.id,
+      name: block.category?.name || `Блок #${block.category?.id}`,
+    }));
+  }, [questions]);
+
+  // Бүх блокийн асуултыг нэг жагсаалт болгож хавтгайруулна, гэхдээ аль
+  // блокод хамаарахыг мартахгүй хадгална — блокоор хайх/шүүхэд хэрэглэнэ.
   const flatQuestions = useMemo(() => {
     if (!Array.isArray(questions)) return [];
     return questions.flatMap((block) =>
       (block.questions || []).map((q) => ({
         id: q.id,
         name: stripHtml(q.name) || `Асуулт #${q.id}`,
+        blockId: block.category?.id,
+        blockName: block.category?.name || `Блок #${block.category?.id}`,
         answers: (q.answers || []).map((a) => ({
           id: a.id,
           value: stripHtml(a.value) || `Хариулт #${a.id}`,
@@ -48,6 +61,34 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       }))
     );
   }, [questions]);
+
+  // Select-үүдийн сонголтыг блокоор бүлэглэнэ (optgroup), нэрээр нь болон
+  // блокийн нэрээр хайх боломжтой болгоно.
+  const groupedQuestionOptions = useMemo(() => {
+    if (!Array.isArray(questions)) return [];
+    return questions
+      .filter((block) => !blockFilter || block.category?.id === blockFilter)
+      .map((block) => ({
+        label: block.category?.name || `Блок #${block.category?.id}`,
+        title: block.category?.name,
+        options: (block.questions || []).map((q) => ({
+          value: q.id,
+          label: stripHtml(q.name) || `Асуулт #${q.id}`,
+          blockName: block.category?.name || "",
+        })),
+      }))
+      .filter((g) => g.options.length > 0);
+  }, [questions, blockFilter]);
+
+  // Асуултын нэр эсвэл блокийн нэрээр тохирвол хайлтад тааруулна
+  // (antd group-той Select дээр энэ функц дэд сонголт бүрд дуудагдана).
+  const filterQuestionOption = (input, option) => {
+    const search = input.toLowerCase();
+    return (
+      option?.label?.toLowerCase().includes(search) ||
+      option?.blockName?.toLowerCase().includes(search)
+    );
+  };
 
   const questionById = useMemo(() => {
     const m = new Map();
@@ -142,7 +183,26 @@ const BranchingRules = ({ visible, onClose, questions }) => {
     }
   };
 
+  // Хүснэгтэд харуулах дүрмүүдийг сонгосон блокоор шүүнэ (алгасагдах
+  // асуултын харьяалагдах блокоор).
+  const visibleRules = useMemo(() => {
+    if (!blockFilter) return rules;
+    return rules.filter(
+      (r) =>
+        Number(questionById.get(Number(r.targetQuestionId))?.blockId) ===
+        Number(blockFilter),
+    );
+  }, [rules, blockFilter, questionById]);
+
   const columns = [
+    {
+      title: "Блок",
+      key: "block",
+      width: 140,
+      render: (_, r) => (
+        <Tag>{questionById.get(Number(r.targetQuestionId))?.blockName || "—"}</Tag>
+      ),
+    },
     {
       title: "Алгасах асуулт",
       key: "target",
@@ -211,27 +271,35 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       </div>
 
       <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3 mb-4">
+        <Select
+          allowClear
+          placeholder="Блокоор шүүх"
+          className="w-full md:w-64"
+          value={blockFilter}
+          onChange={setBlockFilter}
+          options={blocks.map((b) => ({ value: b.id, label: b.name }))}
+        />
         <div className="flex flex-col md:flex-row gap-2">
           <Select
             showSearch
-            optionFilterProp="label"
-            placeholder="Алгасах асуулт"
+            placeholder="Алгасах асуулт (нэр эсвэл блокоор хайх)"
             className="flex-1"
             value={targetQuestionId}
             onChange={setTargetQuestionId}
-            options={flatQuestions.map((q) => ({ value: q.id, label: q.name }))}
+            filterOption={filterQuestionOption}
+            options={groupedQuestionOptions}
           />
           <Select
             showSearch
-            optionFilterProp="label"
-            placeholder="Нөхцөлт асуулт"
+            placeholder="Нөхцөлт асуулт (нэр эсвэл блокоор хайх)"
             className="flex-1"
             value={dependsOnQuestionId}
             onChange={(v) => {
               setDependsOnQuestionId(v);
               setDependsOnAnswerId(null);
             }}
-            options={flatQuestions.map((q) => ({ value: q.id, label: q.name }))}
+            filterOption={filterQuestionOption}
+            options={groupedQuestionOptions}
           />
         </div>
         <div className="flex flex-col md:flex-row gap-2">
@@ -262,16 +330,20 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         <div className="flex justify-center py-6">
           <Spin indicator={<LoadingOutlined style={{ fontSize: 28 }} spin />} />
         </div>
-      ) : rules.length ? (
+      ) : visibleRules.length ? (
         <Table
           rowKey="id"
           size="small"
           columns={columns}
-          dataSource={rules}
+          dataSource={visibleRules}
           pagination={false}
         />
       ) : (
-        <Empty description="Дүрэм алга" />
+        <Empty
+          description={
+            blockFilter ? "Энэ блокод дүрэм алга" : "Дүрэм алга"
+          }
+        />
       )}
     </Modal>
   );
