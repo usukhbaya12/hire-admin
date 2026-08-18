@@ -15,7 +15,7 @@ import {
 } from "antd";
 import { DropdownIcon } from "./Icons";
 import { PlusOutlined } from "@ant-design/icons";
-import { imageUploader } from "@/app/api/constant";
+import { imageUploader, getUsers } from "@/app/api/constant";
 import { api } from "@/utils/routes";
 import { TestName } from "./test-ui/TestName";
 import Image from "next/image";
@@ -61,6 +61,10 @@ import {
   TextUnderlineCircleBoldDuotone,
 } from "solar-icons";
 import CharacterCount from "@tiptap/extension-character-count";
+
+// core-ийн src/base/constants.ts-тэй тохирсон утгууд
+const ASSESSMENT_STATUS_DEFAULT = 10; // Идэвхтэй/Нээлттэй
+const ASSESSMENT_STATUS_ONLY = 40; // Зөвхөн тухайн байгууллагад зориулсан
 
 const SortableBlock = ({
   block,
@@ -170,6 +174,57 @@ const Settings = ({
   const [questionCountEnabled, setQuestionCountEnabled] = useState(false);
   const [blockQuestionCounts, setBlockQuestionCounts] = useState({});
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Байгууллагад зориулсан тест (owner + status=ONLY)
+  const [organizations, setOrganizations] = useState([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchOrganizations = async () => {
+      setOrganizationsLoading(true);
+      try {
+        const response = await getUsers({ role: 30, limit: 500 });
+        if (!cancelled && response?.success) {
+          const list = Array.isArray(response.data?.data)
+            ? response.data.data
+            : Array.isArray(response.data)
+              ? response.data
+              : [];
+          setOrganizations(list);
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      } finally {
+        if (!cancelled) setOrganizationsLoading(false);
+      }
+    };
+
+    fetchOrganizations();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedOwnerId =
+    assessmentData?.data?.owner?.id ?? assessmentData?.data?.owner ?? null;
+  const isOrgOnly = assessmentData?.data?.status === ASSESSMENT_STATUS_ONLY;
+
+  const handleOwnerChange = (value) => {
+    handleFieldChange("owner", value);
+  };
+
+  const handleOrgOnlyToggle = (checked) => {
+    if (checked && !selectedOwnerId) {
+      messageApi.error("Эхлээд байгууллага сонгоно уу.");
+      return;
+    }
+    handleFieldChange(
+      "status",
+      checked ? ASSESSMENT_STATUS_ONLY : ASSESSMENT_STATUS_DEFAULT,
+    );
+  };
 
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (assessmentData?.category?.parent) {
@@ -835,6 +890,38 @@ const Settings = ({
             }
           />
           <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
+        </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Байгууллагад зориулсан тест</div>
+        <div className="pb-2">
+          <div className="px-1 pb-2">Байгууллага сонгох</div>
+          <Select
+            allowClear
+            showSearch
+            className="w-full max-w-[360px]"
+            loading={organizationsLoading}
+            placeholder="Байгууллага сонгох"
+            suffixIcon={<DropdownIcon width={15} height={15} />}
+            value={selectedOwnerId ?? undefined}
+            filterOption={(input, option) =>
+              (option?.label ?? "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+            options={organizations.map((org) => ({
+              label: org.organizationName || org.firstname || org.email,
+              value: org.id,
+            }))}
+            onChange={(value) => handleOwnerChange(value ?? null)}
+          />
+        </div>
+        <div className="flex items-center gap-2 mb-2 mt-3">
+          <Switch
+            size="small"
+            checked={isOrgOnly}
+            onChange={handleOrgOnlyToggle}
+          />
+          <span>Зөвхөн энэ байгууллагад (нийтийн жагсаалтад харагдахгүй)</span>
         </div>
       </div>
     </div>
