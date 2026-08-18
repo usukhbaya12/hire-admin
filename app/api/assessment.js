@@ -24,7 +24,8 @@ export const createAssessment = async (values) => {
       category: values.category,
       icons: values.icons,
       answerCategories: values.answerCategories,
-      status: 20,
+      status: values.status ?? 20,
+      owner: values.owner,
     };
     const res = await fetch(`${api}assessment`, {
       method: "POST",

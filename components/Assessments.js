@@ -84,6 +84,9 @@ const STATUS = {
   FEATURED: 30,
 };
 
+// Зөвхөн тухайн байгууллагад зориулсан (нийтийн жагсаалтад харагдахгүй)
+const ASSESSMENT_STATUS_ONLY = 40;
+
 const typeOptions = [
   { value: "", label: "Бүх төрөл" },
   { value: String(ASSESSMENT_TYPE.SURVEY), label: "Үнэлгээ" },
@@ -471,7 +474,8 @@ export default function TestsPageClient({
           duration: 0,
           type: formData.type,
           answerCategories,
-          status: STATUS.ARCHIVED,
+          status: formData.orgOnly ? ASSESSMENT_STATUS_ONLY : STATUS.ARCHIVED,
+          owner: formData.owner || undefined,
         });
 
         if (response?.success && response?.data?.id) {

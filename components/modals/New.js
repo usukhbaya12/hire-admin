@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { createNewCategory } from "@/app/api/assessment";
+import { getUsers } from "@/app/api/constant";
 import { PlusIcon } from "../Icons";
 import { PenLineDuotone, TagLineDuotone } from "solar-icons";
 
@@ -58,6 +59,7 @@ const NewAssessment = ({
       category: "",
       assessmentType: String(ASSESSMENT_TYPE.SURVEY),
       answerCategoriesInput: "",
+      organizationId: "",
     },
   });
 
@@ -88,10 +90,50 @@ const NewAssessment = ({
   const [creatingMainCategory, setCreatingMainCategory] = useState(false);
   const [creatingSubCategory, setCreatingSubCategory] = useState(false);
 
+  const [organizations, setOrganizations] = useState([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
+  const [isOrgOnly, setIsOrgOnly] = useState(false);
+
   const testName = watch("testName");
   const assessmentType = Number(watch("assessmentType"));
   const category = watch("category");
   const answerCategoriesInput = watch("answerCategoriesInput");
+  const organizationId = watch("organizationId");
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchOrganizations = async () => {
+      setOrganizationsLoading(true);
+      try {
+        const response = await getUsers({ role: 30, limit: 500 });
+        if (!cancelled && response?.success) {
+          const list = Array.isArray(response.data?.data)
+            ? response.data.data
+            : Array.isArray(response.data)
+              ? response.data
+              : [];
+          setOrganizations(list);
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      } finally {
+        if (!cancelled) setOrganizationsLoading(false);
+      }
+    };
+
+    fetchOrganizations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const organizationOptions = useMemo(() => {
+    return organizations.map((org) => ({
+      label: org.organizationName || org.firstname || org.email,
+      value: String(org.id),
+    }));
+  }, [organizations]);
 
   useEffect(() => {
     if (isModalOpen) {
@@ -100,6 +142,7 @@ const NewAssessment = ({
         category: "",
         assessmentType: String(ASSESSMENT_TYPE.SURVEY),
         answerCategoriesInput: "",
+        organizationId: "",
       });
       setIsEditing(false);
       setCategorySwitchOn(false);
@@ -109,6 +152,7 @@ const NewAssessment = ({
       setIsSubCategoryDialogOpen(false);
       setNewMainCategoryName("");
       setNewSubCategoryName("");
+      setIsOrgOnly(false);
       clearErrors();
     }
   }, [isModalOpen, reset, clearErrors]);
@@ -189,9 +233,17 @@ const NewAssessment = ({
         hasError = true;
       }
 
+      if (isOrgOnly && !values.organizationId) {
+        setError("organizationId", {
+          type: "required",
+          message: "Байгууллага сонгоно уу.",
+        });
+        hasError = true;
+      }
+
       return !hasError;
     },
-    [isCategorySwitchOn, setError],
+    [isCategorySwitchOn, isOrgOnly, setError],
   );
 
   const handleCreateMainCategory = useCallback(async () => {
@@ -293,6 +345,8 @@ const NewAssessment = ({
           categories: answerCategoriesArray,
           type: Number(values.assessmentType),
           assessmentCategory: Number(values.category),
+          owner: values.organizationId ? Number(values.organizationId) : null,
+          orgOnly: isOrgOnly,
         };
 
         await handleOk(formData);
@@ -302,7 +356,13 @@ const NewAssessment = ({
         setIsSubmitting(false);
       }
     },
-    [validateBeforeSubmit, isCategorySwitchOn, answerCategoriesArray, handleOk],
+    [
+      validateBeforeSubmit,
+      isCategorySwitchOn,
+      answerCategoriesArray,
+      isOrgOnly,
+      handleOk,
+    ],
   );
 
   return (
@@ -648,6 +708,62 @@ const NewAssessment = ({
                 )}
               />
             )}
+
+            <Separator />
+
+            <Controller
+              name="organizationId"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Байгууллага сонгох</FieldLabel>
+                  <Select
+                    value={field.value || undefined}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      clearErrors("organizationId");
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue
+                        placeholder={
+                          organizationsLoading
+                            ? "Ачааллаж байна..."
+                            : "Байгууллага сонгох"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizationOptions.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <div className="gap-2 flex items-center">
+              <Switch
+                checked={isOrgOnly}
+                onCheckedChange={(checked) => {
+                  if (checked && !organizationId) {
+                    toast.error("Эхлээд байгууллага сонгоно уу.");
+                    return;
+                  }
+                  setIsOrgOnly(checked);
+                  if (checked) clearErrors("organizationId");
+                }}
+              />
+              <div>
+                Зөвхөн энэ байгууллагад (нийтийн жагсаалтад харагдахгүй)
+              </div>
+            </div>
           </FieldGroup>
 
           <DialogFooter className="mt-6">
