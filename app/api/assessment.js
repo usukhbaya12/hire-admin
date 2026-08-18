@@ -200,6 +200,37 @@ export const deleteAssessmentById = async (id) => {
   }
 };
 
+// Тухайн assessment-ийг (questionCategory, question, answer, answerCategory,
+// тохиргоо гэх мэт бүх агуулгыг) хуулж, шинэ assessment үүсгэнэ.
+// Core: GET /question/copy/:id (Role: admin, super_admin, tester)
+export const copyAssessment = async (id) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}question/copy/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }).then((d) => d.json());
+
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
 export const updateAssessmentById = async (id, values) => {
   const token = await getAuthToken();
   if (!token) return { token: false };

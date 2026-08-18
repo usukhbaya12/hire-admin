@@ -23,12 +23,14 @@ import {
   ChatRoundLineBoldDuotone,
   ChatRoundLineDuotone,
   Dialog2LineDuotone,
+  CopyBoldDuotone,
 } from "solar-icons";
 import {
   getAssessmentsNew,
   createAssessment,
   updateAssessmentById,
   deleteAssessmentById,
+  copyAssessment,
   getAssessmentCategory,
 } from "@/app/api/assessment";
 import { Button } from "./ui/button";
@@ -566,6 +568,40 @@ export default function TestsPageClient({
     window.open(`/preview/${item.id}`, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleDuplicate = useCallback(
+    async (item) => {
+      if (!item?.id) return;
+      try {
+        setActionLoading(true);
+        setActiveRowId(item.id);
+
+        const response = await copyAssessment(item.id);
+        // Анхаар: core-ийн question/copy/:id нь шинэ assessment-ийн ID-г
+        // объект биш, шууд тоо хэлбэрээр буцаадаг (assessmentDao.create() → res.id).
+        const newId = response?.data?.id ?? response?.data;
+
+        if (response?.success && newId) {
+          toast.success(
+            `"${item.name}"-г хуулж, шинэ тест үүсгэлээ.`,
+          );
+          await fetchData({ page: 1 });
+          router.push(`/test/${newId}`);
+        } else {
+          toast.error(
+            response?.message || "Тест хуулахад алдаа гарлаа.",
+          );
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Сервертэй холбогдоход алдаа гарлаа.");
+      } finally {
+        setActionLoading(false);
+        setActiveRowId(null);
+      }
+    },
+    [fetchData, router, toast],
+  );
+
   const handleDeleteClick = useCallback((item) => {
     setDeleteModal({ open: true, record: item });
   }, []);
@@ -959,6 +995,13 @@ export default function TestsPageClient({
                               >
                                 <EyeBoldDuotone width={18} />
                                 Урьдчилж харах
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handleDuplicate(item)}
+                              >
+                                <CopyBoldDuotone width={18} />
+                                Хувилах
                               </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
