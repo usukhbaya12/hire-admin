@@ -30,7 +30,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   const [saving, setSaving] = useState(false);
   const [rules, setRules] = useState([]);
 
-  const [targetQuestionId, setTargetQuestionId] = useState(null);
+  const [targetQuestionIds, setTargetQuestionIds] = useState([]);
   const [dependsOnQuestionId, setDependsOnQuestionId] = useState(null);
   const [dependsOnAnswerId, setDependsOnAnswerId] = useState(null);
   const [blockFilter, setBlockFilter] = useState(null);
@@ -133,35 +133,54 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   }, [visible, assessmentQuestionIds]);
 
   const resetForm = () => {
-    setTargetQuestionId(null);
+    setTargetQuestionIds([]);
     setDependsOnQuestionId(null);
     setDependsOnAnswerId(null);
   };
 
+  // Нэг нөхцөлт асуултаас ХЭД ХЭДЭН асуулт зэрэг алгасуулахын тулд
+  // "Алгасах асуулт" талбарыг олон сонголттой (multi-select) болгосон.
+  // Сервер тал нэг дүрэм = нэг target асуулттай тул сонгосон target бүрд
+  // тусад нь createQuestionRule дуудна (нэг dependsOn хослолоор олон мөр
+  // үүснэ) — ингэснээр admin нэг нэгээр давтаж нэмэх шаардлагагүй болно.
   const handleAdd = async () => {
-    if (!targetQuestionId || !dependsOnQuestionId) {
-      messageApi.warning("Алгасах асуулт болон нөхцөлт асуултыг сонгоно уу.");
+    if (!targetQuestionIds.length || !dependsOnQuestionId) {
+      messageApi.warning("Алгасах асуулт(ууд) болон нөхцөлт асуултыг сонгоно уу.");
       return;
     }
-    if (Number(targetQuestionId) === Number(dependsOnQuestionId)) {
-      messageApi.warning("Асуултууд ялгаатай байх ёстой.");
+    if (targetQuestionIds.some((id) => Number(id) === Number(dependsOnQuestionId))) {
+      messageApi.warning("Алгасах асуулт нөхцөлт асуулттай адилхан байж болохгүй.");
       return;
     }
     setSaving(true);
     try {
-      const res = await createQuestionRule({
-        targetQuestionId: Number(targetQuestionId),
-        dependsOnQuestionId: Number(dependsOnQuestionId),
-        dependsOnAnswerId: dependsOnAnswerId ? Number(dependsOnAnswerId) : null,
-        action: "skip",
-      });
-      if (res?.success) {
-        messageApi.success("Дүрэм нэмэгдлээ.");
+      const results = await Promise.all(
+        targetQuestionIds.map((targetId) =>
+          createQuestionRule({
+            targetQuestionId: Number(targetId),
+            dependsOnQuestionId: Number(dependsOnQuestionId),
+            dependsOnAnswerId: dependsOnAnswerId ? Number(dependsOnAnswerId) : null,
+            action: "skip",
+          }),
+        ),
+      );
+      const failed = results.filter((res) => !res?.success);
+      if (failed.length === 0) {
+        messageApi.success(
+          targetQuestionIds.length > 1
+            ? `${targetQuestionIds.length} дүрэм нэмэгдлээ.`
+            : "Дүрэм нэмэгдлээ.",
+        );
         resetForm();
-        loadRules();
+      } else if (failed.length < results.length) {
+        messageApi.warning(
+          `${results.length - failed.length} дүрэм нэмэгдлээ, ${failed.length} нэмэхэд алдаа гарлаа.`,
+        );
+        resetForm();
       } else {
-        messageApi.error(res?.message || "Дүрэм нэмэхэд алдаа гарлаа.");
+        messageApi.error(failed[0]?.message || "Дүрэм нэмэхэд алдаа гарлаа.");
       }
+      loadRules();
     } catch {
       messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
     } finally {
@@ -282,10 +301,12 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         <div className="flex flex-col md:flex-row gap-2">
           <Select
             showSearch
-            placeholder="Алгасах асуулт (нэр эсвэл блокоор хайх)"
+            mode="multiple"
+            allowClear
+            placeholder="Алгасах асуулт(ууд) (олон сонгож болно)"
             className="flex-1"
-            value={targetQuestionId}
-            onChange={setTargetQuestionId}
+            value={targetQuestionIds}
+            onChange={setTargetQuestionIds}
             filterOption={filterQuestionOption}
             options={groupedQuestionOptions}
           />
