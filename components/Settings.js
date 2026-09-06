@@ -892,6 +892,64 @@ const Settings = ({
           <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
         </div>
         <Divider />
+        {/* 💰 Тайлангийн monetization — тест бүрээр тохируулна. */}
+        <div className="text-base font-bold mt-4 mb-4">
+          Тайлангийн төлбөр (monetization)
+        </div>
+
+        <div className="pb-4">
+          <div className="px-1 pb-2">
+            Үнэгүй харах эрхийн тоо
+            <span className="text-gray-400 font-normal">
+              {" "}
+              — 0 бол хязгааргүй үнэгүй, 1 бол зөвхөн нэг удаа үнэгүй
+            </span>
+          </div>
+          <InputNumber
+            min={0}
+            max={99}
+            className="w-full max-w-[360px]"
+            value={assessmentData?.data.reportFreeViews ?? 0}
+            onChange={(value) =>
+              handleFieldChange("reportFreeViews", value ?? 0)
+            }
+          />
+        </div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.reportPdfPaid ?? false}
+            onChange={(checked) => handleFieldChange("reportPdfPaid", checked)}
+          />
+          <span>
+            Дэлгэц дээр харах үнэгүй, PDF татахад төлбөртэй
+          </span>
+        </div>
+
+        <div className="pb-2">
+          <div className="px-1 pb-2">
+            Тайлан нээх үнэ (₮)
+            <span className="text-gray-400 font-normal">
+              {" "}
+              — 0 бол төлбөр огт авахгүй. Нэг удаа төлөхөд хязгааргүй харах +
+              PDF нээгдэнэ.
+            </span>
+          </div>
+          <InputNumber
+            min={0}
+            step={1000}
+            className="w-full max-w-[360px]"
+            formatter={(value) =>
+              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+            }
+            parser={(value) => `${value}`.replace(/,/g, "")}
+            value={assessmentData?.data.reportPrice ?? 0}
+            onChange={(value) => handleFieldChange("reportPrice", value ?? 0)}
+          />
+        </div>
+
+        <Divider />
         <div className="text-base font-bold mt-4 mb-4">Байгууллагад зориулсан тест</div>
         <div className="pb-2">
           <div className="px-1 pb-2">Байгууллага сонгох</div>
