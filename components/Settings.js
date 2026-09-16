@@ -892,9 +892,8 @@ const Settings = ({
           <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
         </div>
         <Divider />
-        {/* 💰 Тайлангийн monetization — тест бүрээр тохируулна. */}
         <div className="text-base font-bold mt-4 mb-4">
-          Тайлангийн төлбөр (monetization)
+          Тайлангийн төлбөр
         </div>
 
         <div className="pb-4">
