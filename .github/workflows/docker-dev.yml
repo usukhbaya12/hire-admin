@@ -10,7 +10,19 @@ env:
   IMAGE_NAME: usukhbaya12/hire-admin
 
 jobs:
+  # №9-L0 / №15-P1: улаан тест image-ийг гаргахгүй. Тестүүд зөвхөн Node (npm install шаардахгүй):
+  # api-boundary (browser core-г шууд дуудахгүй), exam-answers / exam-resume / exam-actions (web).
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
 
     permissions:

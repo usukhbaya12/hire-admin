@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import ReportOpsModal from "./modals/ReportOps";
 import * as XLSX from "xlsx";
 import {
   FolderFavouriteBookmarkBoldDuotone,
@@ -449,6 +451,10 @@ function renderResult(item) {
 }
 
 export default function ResultsPageClient({ initialData = null }) {
+  // №14: тайлангийн ops (дахин зурах / бодох / PDF солих) зөвхөн super admin-д.
+  const { data: session } = useSession();
+  const isSuper = session?.user?.role === 10;
+  const [opsCode, setOpsCode] = useState(null);
   const defaultRange = useMemo(() => getDefaultDateRange(), []);
 
   const [rows, setRows] = useState(initialData?.data || []);
@@ -973,14 +979,26 @@ export default function ResultsPageClient({ initialData = null }) {
 
                       <div className="col-span-2 flex items-center justify-center">
                         {Number(item.examstatus) === EXAM_STATUS.FINISHED ? (
-                          <a
-                            href={`/api/report/${item.code}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 font-semibold text-main hover:text-red-500"
-                          >
-                            <EyeBoldDuotone width={18} />
-                          </a>
+                          <span className="inline-flex items-center gap-3">
+                            <a
+                              href={`/api/report/${item.code}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 font-semibold text-main hover:text-red-500"
+                            >
+                              <EyeBoldDuotone width={18} />
+                            </a>
+                            {isSuper && (
+                              <button
+                                type="button"
+                                title="Тайлангийн ops"
+                                onClick={() => setOpsCode(item.code)}
+                                className="text-[13px] font-semibold text-slate-500 hover:text-red-500"
+                              >
+                                ops
+                              </button>
+                            )}
+                          </span>
                         ) : (
                           <span className="text-sm text-slate-400">-</span>
                         )}
@@ -1090,6 +1108,13 @@ export default function ResultsPageClient({ initialData = null }) {
           </>
         )}
       </div>
+      {isSuper && (
+        <ReportOpsModal
+          code={opsCode}
+          open={!!opsCode}
+          onClose={() => setOpsCode(null)}
+        />
+      )}
     </div>
   );
 }

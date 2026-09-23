@@ -20,6 +20,14 @@ import {
   createQuestionRule,
   deleteQuestionRule,
 } from "@/app/api/assessment";
+import { QUESTION_TYPES } from "@/utils/values";
+
+// Нөхцөл болгож болох асуултын төрөл: зөвхөн нэг / олон сонголттой (SINGLE / MULTIPLE).
+// Бусад төрөл (MATRIX, SLIDER, TEXT, TRUE_FALSE …) answer id-тай биш тул шалгуулагчийн
+// хуудас (client) ба сервер (`userAnswer.answerId`) хоёр зөрж, дүрэм зөв ажиллахгүй.
+// Сервер (`QuestionRuleService`) мөн адил шалгана.
+const CONDITION_TYPES = [QUESTION_TYPES.SINGLE, QUESTION_TYPES.MULTIPLE];
+const isConditionType = (type) => CONDITION_TYPES.includes(Number(type));
 
 // HTML таг агуулсан асуултын нэрийг цэвэр текст болгоно.
 const stripHtml = (s) =>
@@ -51,6 +59,8 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       (block.questions || []).map((q) => ({
         id: q.id,
         name: stripHtml(q.name) || `Асуулт #${q.id}`,
+        type: q.type,
+        blockOrder: block.category?.orderNumber ?? null,
         blockId: block.category?.id,
         blockName: block.category?.name || `Блок #${block.category?.id}`,
         answers: (q.answers || []).map((a) => ({
@@ -75,14 +85,27 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   // Select-үүдийн сонголтыг блокоор бүлэглэнэ (optgroup); excludeIds-д
   // орсон асуултуудыг сонголтоос хасна (жишээ нь: тухайн картын нөхцөл
   // асуулт болон аль хэдийн нэмэгдсэн алгасах асуултуудыг давхардуулахгүй).
-  const buildGroupedOptions = (excludeIds) => {
+  //   onlyConditionTypes — зөвхөн SINGLE / MULTIPLE асуулт (нөхцөл сонгох үед);
+  //   minBlockOrder — энэ дугаараас ӨМНӨХ блокийн асуултыг харуулахгүй (алгасах
+  //   асуулт нь нөхцөл асуултаас ӨМНӨХ блокт байж болохгүй: хэсгүүд дараалалтай нээгдэнэ).
+  const buildGroupedOptions = (
+    excludeIds,
+    { onlyConditionTypes = false, minBlockOrder = null } = {}
+  ) => {
     if (!Array.isArray(questions)) return [];
     return questions
+      .filter(
+        (block) =>
+          minBlockOrder == null ||
+          block.category?.orderNumber == null ||
+          block.category.orderNumber >= minBlockOrder
+      )
       .map((block) => ({
         label: block.category?.name || `Блок #${block.category?.id}`,
         title: block.category?.name,
         options: (block.questions || [])
           .filter((q) => !excludeIds || !excludeIds.has(Number(q.id)))
+          .filter((q) => !onlyConditionTypes || isConditionType(q.type))
           .map((q) => ({
             value: q.id,
             label: stripHtml(q.name) || `Асуулт #${q.id}`,
@@ -93,7 +116,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   };
 
   const conditionQuestionOptions = useMemo(
-    () => buildGroupedOptions(new Set()),
+    () => buildGroupedOptions(new Set(), { onlyConditionTypes: true }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [questions]
   );
@@ -181,10 +204,18 @@ const BranchingRules = ({ visible, onClose, questions }) => {
               dependsOnQuestionId: questionId,
               dependsOnAnswerId: null,
               // шинээр сонгосон нөхцөл асуулт нь өөрөө алгасах жагсаалтад
-              // байвал давхардлыг арилгана.
-              targetQuestionIds: c.targetQuestionIds.filter(
-                (id) => Number(id) !== Number(questionId)
-              ),
+              // байвал давхардлыг арилгана; мөн нөхцөл асуултаас ӨМНӨХ блокт
+              // байгаа алгасах асуултуудыг хасна (сервер зөвшөөрөхгүй).
+              targetQuestionIds: c.targetQuestionIds.filter((id) => {
+                if (Number(id) === Number(questionId)) return false;
+                const cond = questionById.get(Number(questionId));
+                const tgt = questionById.get(Number(id));
+                return !(
+                  cond?.blockOrder != null &&
+                  tgt?.blockOrder != null &&
+                  tgt.blockOrder < cond.blockOrder
+                );
+              }),
             }
           : c
       )
@@ -276,13 +307,20 @@ const BranchingRules = ({ visible, onClose, questions }) => {
 
     setSaving(true);
     try {
-      const results = await Promise.all([
-        ...toCreate.map((r) => createQuestionRule({ ...r, action: "skip" })),
-        ...toDeleteIds.map((id) => deleteQuestionRule(id)),
-      ]);
+      // Эхлээд устгаад (засвар = устгаад дахин үүсгэх), дараа нь ДАРААЛАЛТАЙ үүсгэнэ:
+      // сервер шинэ дүрэм бүрийг өмнө хадгалагдсантай (цикл, давхардал) харьцуулж
+      // шалгадаг тул зэрэг илгээвэл бие биенээ харахгүй.
+      const results = [];
+      for (const id of toDeleteIds) results.push(await deleteQuestionRule(id));
+      for (const r of toCreate) {
+        results.push(await createQuestionRule({ ...r, action: "skip" }));
+      }
       const failed = results.filter((res) => !res?.success);
       if (failed.length) {
-        messageApi.warning("Зарим өөрчлөлт хадгалагдсангүй, дахин оролдоно уу.");
+        messageApi.warning(
+          failed.find((res) => res?.message)?.message ||
+            "Зарим өөрчлөлт хадгалагдсангүй, дахин оролдоно уу."
+        );
       } else {
         messageApi.success("Дүрэм хадгалагдлаа.");
       }
@@ -315,6 +353,8 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       {contextHolder}
       <div className="text-sm text-gray-500 mb-3">
         Тодорхой хариулт өгсөн үед дараах асуултуудыг алгасахаар тохируулна.
+        Нөхцөл болгох асуулт нь нэг / олон сонголттой байх ба алгасах асуулт нь
+        нөхцөл асуулттай ижил эсвэл түүнээс хойших блокт байна.
       </div>
 
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-4">
@@ -347,7 +387,29 @@ const BranchingRules = ({ visible, onClose, questions }) => {
               Number(card.dependsOnQuestionId),
               ...card.targetQuestionIds.map(Number),
             ]);
-            const skipOptions = buildGroupedOptions(excludeIds);
+            const skipOptions = buildGroupedOptions(excludeIds, {
+              minBlockOrder: dependsQuestion?.blockOrder ?? null,
+            });
+            // Хуучин (энэ шалгалт нэмэгдэхээс өмнөх) дүрмийн нөхцөл асуулт
+            // SINGLE / MULTIPLE биш байж болно — ердийн жагсаалтад байхгүй тул
+            // id-аар нь биш нэрээр нь харуулж, анхааруулна.
+            const legacyCondition =
+              dependsQuestion && !isConditionType(dependsQuestion.type);
+            const conditionOptions = legacyCondition
+              ? [
+                  ...conditionQuestionOptions,
+                  {
+                    label: "Одоогийн сонголт (дэмжигдээгүй төрөл)",
+                    options: [
+                      {
+                        value: dependsQuestion.id,
+                        label: `${dependsQuestion.name} — ⚠ дэмжигдээгүй төрөл`,
+                        blockName: dependsQuestion.blockName,
+                      },
+                    ],
+                  },
+                ]
+              : conditionQuestionOptions;
 
             return (
               <div key={card.key} className="border border-gray-200 rounded-xl p-4 bg-white">
@@ -379,8 +441,14 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                     value={card.dependsOnQuestionId || undefined}
                     onChange={(v) => setCardDependsOn(card.key, v)}
                     filterOption={filterQuestionOption}
-                    options={conditionQuestionOptions}
+                    options={conditionOptions}
                   />
+                  {legacyCondition && (
+                    <div className="text-xs text-amber-600">
+                      Энэ нөхцөл нь нэг / олон сонголттой асуулт биш тул шалгуулагчийн
+                      хуудсанд зөв ажиллахгүй. Өөр асуулт сонгоно уу.
+                    </div>
+                  )}
                   <Select
                     allowClear
                     placeholder={

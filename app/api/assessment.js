@@ -1,5 +1,5 @@
 "use server";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 import { getAuthToken } from "@/utils/auth";
 
 export const createAssessment = async (values) => {
@@ -636,7 +636,13 @@ export const createQuestionRule = async (values) => {
       },
       body: JSON.stringify(body),
     }).then((d) => d.json());
-    return { data: res.payload, token: true, success: res.succeed };
+    // Сервер дүрмийг шалгаж татгалзвал (цикл, өөртэйгөө, буруу төрөл …) `message` ирнэ.
+    return {
+      data: res.payload,
+      token: true,
+      success: res.succeed,
+      message: res.succeed ? undefined : res.message,
+    };
   } catch (error) {
     console.error(error);
     return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };

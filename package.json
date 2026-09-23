@@ -6,7 +6,8 @@
     "dev": "next dev -p 4000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node test/api-boundary.test.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^1.23.0",

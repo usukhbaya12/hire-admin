@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthToken } from "@/utils/auth";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 
 export const handlePasswordChange = async (data) => {
   try {

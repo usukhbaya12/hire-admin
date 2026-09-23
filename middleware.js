@@ -35,6 +35,11 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
 
+    // №11: /monitor зөвхөн super admin (10). Бусад админ → нүүр хуудас.
+    if (pathname.startsWith("/monitor") && userRole !== 10) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
     return NextResponse.next();
   }
 

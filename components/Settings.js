@@ -896,25 +896,6 @@ const Settings = ({
           Тайлангийн төлбөр
         </div>
 
-        <div className="pb-4">
-          <div className="px-1 pb-2">
-            Үнэгүй харах эрхийн тоо
-            <span className="text-gray-400 font-normal">
-              {" "}
-              — 0 бол хязгааргүй үнэгүй, 1 бол зөвхөн нэг удаа үнэгүй
-            </span>
-          </div>
-          <InputNumber
-            min={0}
-            max={99}
-            className="w-full max-w-[360px]"
-            value={assessmentData?.data.reportFreeViews ?? 0}
-            onChange={(value) =>
-              handleFieldChange("reportFreeViews", value ?? 0)
-            }
-          />
-        </div>
-
         <div className="flex items-center gap-2 mb-4">
           <Switch
             size="small"
