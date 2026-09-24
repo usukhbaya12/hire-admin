@@ -168,7 +168,7 @@ const Settings = ({
   const [loading, setLoading] = useState(false);
   const [blockDurationEnabled, setBlockDurationEnabled] = useState(false);
   const [testEndsOnTimeout, setTestEndsOnTimeout] = useState(
-    assessmentData?.data?.timeout
+    assessmentData?.data?.timeout,
   );
   const [blockDurations, setBlockDurations] = useState({});
   const [questionCountEnabled, setQuestionCountEnabled] = useState(false);
@@ -420,7 +420,7 @@ const Settings = ({
         prevBlocks.map((block) => ({
           ...block,
           duration: 0,
-        }))
+        })),
       );
 
       const resetDurations = {};
@@ -443,8 +443,8 @@ const Settings = ({
 
     setBlocks((prevBlocks) =>
       prevBlocks.map((block) =>
-        block.id === blockId ? { ...block, duration } : block
-      )
+        block.id === blockId ? { ...block, duration } : block,
+      ),
     );
 
     setBlockDurations((prev) => ({
@@ -460,11 +460,11 @@ const Settings = ({
 
       const totalDuration = blocks.reduce(
         (sum, block) => sum + (updatedDurations[block.id] || 0),
-        0
+        0,
       );
 
       const updatedBlocks = blocks.map((block) =>
-        block.id === blockId ? { ...block, duration } : block
+        block.id === blockId ? { ...block, duration } : block,
       );
 
       handleFieldChange("duration", totalDuration, updatedBlocks);
@@ -509,8 +509,10 @@ const Settings = ({
 
     setBlocks((prevBlocks) =>
       prevBlocks.map((block) =>
-        block.id === blockId ? { ...block, questionCount, sliced: true } : block
-      )
+        block.id === blockId
+          ? { ...block, questionCount, sliced: true }
+          : block,
+      ),
     );
 
     setBlockQuestionCounts((prev) => ({
@@ -519,11 +521,11 @@ const Settings = ({
     }));
 
     const updatedBlocks = blocks.map((block) =>
-      block.id === blockId ? { ...block, questionCount, sliced: true } : block
+      block.id === blockId ? { ...block, questionCount, sliced: true } : block,
     );
     const totalCount = updatedBlocks.reduce(
       (total, block) => total + block.questionCount,
-      0
+      0,
     );
 
     handleFieldChange("questionCount", totalCount, updatedBlocks);
@@ -561,7 +563,7 @@ const Settings = ({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event) => {
@@ -575,7 +577,7 @@ const Settings = ({
         (block, index) => ({
           ...block,
           order: index + 1,
-        })
+        }),
       );
 
       setBlocks(newBlocks);
@@ -632,7 +634,7 @@ const Settings = ({
               suffixIcon={<DropdownIcon width={15} height={15} />}
               onChange={(value) => {
                 const selectedCate = assessmentCategories.find(
-                  (c) => c.id === value
+                  (c) => c.id === value,
                 );
                 setSelectedCategory({
                   id: selectedCate.id,
@@ -655,7 +657,7 @@ const Settings = ({
               }
               onChange={(value) => {
                 const selectedCate = availableSubCategories.find(
-                  (c) => c.id === value
+                  (c) => c.id === value,
                 );
                 setSelectedSubCategory({
                   id: selectedCate.id,
@@ -881,7 +883,9 @@ const Settings = ({
           <span>Хариултууд холих</span>
         </div>
         <Divider />
-        <div className="text-base font-bold mt-4 mb-4">Блок хоорондын шилжилт</div>
+        <div className="text-base font-bold mt-4 mb-4">
+          Блок хоорондын шилжилт
+        </div>
         <div className="flex items-center gap-2 mb-4">
           <Switch
             size="small"
@@ -905,9 +909,7 @@ const Settings = ({
           <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
         </div>
         <Divider />
-        <div className="text-base font-bold mt-4 mb-4">
-          Тайлангийн төлбөр
-        </div>
+        <div className="text-base font-bold mt-4 mb-4">Тайлангийн төлбөр</div>
 
         <div className="flex items-center gap-2 mb-4">
           <Switch
@@ -920,13 +922,7 @@ const Settings = ({
 
         {reportPaidEnabled && (
           <div className="pb-2">
-            <div className="px-1 pb-2">
-              Тайлан нээх үнэ (₮)
-              <span className="text-gray-400 font-normal">
-                {" "}
-                — Нэг удаа төлөхөд хязгааргүй харах + PDF нээгдэнэ.
-              </span>
-            </div>
+            <div className="px-1 pb-2">Тайлан нээх үнэ (₮)</div>
             <InputNumber
               min={0}
               step={1000}
@@ -942,7 +938,9 @@ const Settings = ({
         )}
 
         <Divider />
-        <div className="text-base font-bold mt-4 mb-4">Байгууллагад зориулсан тест</div>
+        <div className="text-base font-bold mt-4 mb-4">
+          Байгууллагад зориулсан тест
+        </div>
         <div className="pb-2">
           <div className="px-1 pb-2">Байгууллага сонгох</div>
           <Select
@@ -954,9 +952,7 @@ const Settings = ({
             suffixIcon={<DropdownIcon width={15} height={15} />}
             value={selectedOwnerId ?? undefined}
             filterOption={(input, option) =>
-              (option?.label ?? "")
-                .toLowerCase()
-                .includes(input.toLowerCase())
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
             options={organizations.map((org) => ({
               label: org.organizationName || org.firstname || org.email,
@@ -971,7 +967,7 @@ const Settings = ({
             checked={isOrgOnly}
             onChange={handleOrgOnlyToggle}
           />
-          <span>Зөвхөн энэ байгууллагад (нийтийн жагсаалтад харагдахгүй)</span>
+          <span>Зөвхөн энэ байгууллагад </span>
         </div>
       </div>
     </div>
