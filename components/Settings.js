@@ -173,6 +173,11 @@ const Settings = ({
   const [blockDurations, setBlockDurations] = useState({});
   const [questionCountEnabled, setQuestionCountEnabled] = useState(false);
   const [blockQuestionCounts, setBlockQuestionCounts] = useState({});
+  // Тайлангийн төлбөр: "Тайлан төлбөртэй эсэх" switch — идэвхтэй үед л
+  // үнэ (reportPrice) оруулах талбар харагдана. Switch-ийг унтраахад
+  // reportPrice шууд 0 болж paywall унтардаг (report-access.service.ts:
+  // enabled = reportPrice > 0).
+  const [reportPaidEnabled, setReportPaidEnabled] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   // Байгууллагад зориулсан тест (owner + status=ONLY)
@@ -360,6 +365,7 @@ const Settings = ({
         answerShuffle: assessmentData.data.answerShuffle,
         categoryShuffle: assessmentData.data.categoryShuffle,
       });
+      setReportPaidEnabled((assessmentData.data.reportPrice ?? 0) > 0);
     }
   }, [assessmentData, form]);
 
@@ -398,6 +404,13 @@ const Settings = ({
       }
     }
   }, [blocks]);
+
+  const handleReportPaidToggle = (checked) => {
+    setReportPaidEnabled(checked);
+    if (!checked) {
+      handleFieldChange("reportPrice", 0);
+    }
+  };
 
   const handleBlockDurationToggle = (checked) => {
     setBlockDurationEnabled(checked);
@@ -899,35 +912,34 @@ const Settings = ({
         <div className="flex items-center gap-2 mb-4">
           <Switch
             size="small"
-            checked={assessmentData?.data.reportPdfPaid ?? false}
-            onChange={(checked) => handleFieldChange("reportPdfPaid", checked)}
+            checked={reportPaidEnabled}
+            onChange={handleReportPaidToggle}
           />
-          <span>
-            Дэлгэц дээр харах үнэгүй, PDF татахад төлбөртэй
-          </span>
+          <span>Тайлан төлбөртэй эсэх</span>
         </div>
 
-        <div className="pb-2">
-          <div className="px-1 pb-2">
-            Тайлан нээх үнэ (₮)
-            <span className="text-gray-400 font-normal">
-              {" "}
-              — 0 бол төлбөр огт авахгүй. Нэг удаа төлөхөд хязгааргүй харах +
-              PDF нээгдэнэ.
-            </span>
+        {reportPaidEnabled && (
+          <div className="pb-2">
+            <div className="px-1 pb-2">
+              Тайлан нээх үнэ (₮)
+              <span className="text-gray-400 font-normal">
+                {" "}
+                — Нэг удаа төлөхөд хязгааргүй харах + PDF нээгдэнэ.
+              </span>
+            </div>
+            <InputNumber
+              min={0}
+              step={1000}
+              className="w-full max-w-[360px]"
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => `${value}`.replace(/,/g, "")}
+              value={assessmentData?.data.reportPrice ?? 0}
+              onChange={(value) => handleFieldChange("reportPrice", value ?? 0)}
+            />
           </div>
-          <InputNumber
-            min={0}
-            step={1000}
-            className="w-full max-w-[360px]"
-            formatter={(value) =>
-              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-            }
-            parser={(value) => `${value}`.replace(/,/g, "")}
-            value={assessmentData?.data.reportPrice ?? 0}
-            onChange={(value) => handleFieldChange("reportPrice", value ?? 0)}
-          />
-        </div>
+        )}
 
         <Divider />
         <div className="text-base font-bold mt-4 mb-4">Байгууллагад зориулсан тест</div>
