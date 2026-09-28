@@ -73,6 +73,9 @@ import OkModal from "./modals/Ok";
 import { CommentOutlined } from "@ant-design/icons";
 import { MessageCircleMore } from "lucide-react";
 
+// Тестийг хувилах / устгах товчийг түр нуусан. Буцааж харуулах бол true болгоно.
+const SHOW_DUPLICATE_DELETE_ACTIONS = false;
+
 const ASSESSMENT_TYPE = {
   TEST: 10,
   SURVEY: 20,
@@ -1001,22 +1004,26 @@ export default function TestsPageClient({
                                 Урьдчилж харах
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem
-                                onClick={() => handleDuplicate(item)}
-                              >
-                                <CopyBoldDuotone width={18} />
-                                Хувилах
-                              </DropdownMenuItem>
+                              {SHOW_DUPLICATE_DELETE_ACTIONS && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDuplicate(item)}
+                                  >
+                                    <CopyBoldDuotone width={18} />
+                                    Хувилах
+                                  </DropdownMenuItem>
 
-                              <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator />
 
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(item)}
-                                variant="destructive"
-                              >
-                                <TrashBin2BoldDuotone width={18} />
-                                Устгах
-                              </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteClick(item)}
+                                    variant="destructive"
+                                  >
+                                    <TrashBin2BoldDuotone width={18} />
+                                    Устгах
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
