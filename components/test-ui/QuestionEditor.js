@@ -11,6 +11,7 @@ import {
   TextUnderlineCircleBoldDuotone,
 } from "solar-icons";
 import { Button, Tooltip } from "antd";
+import { normalizeFileUrls } from "@/utils/fileUrl";
 
 const QuestionEditor = ({
   initialContent,
@@ -37,7 +38,7 @@ const QuestionEditor = ({
         allowBase64: true,
       }),
     ],
-    content: initialContent || "Энд дарж асуултын текстийг өөрчилнө үү.",
+    content: normalizeFileUrls(initialContent) || "Энд дарж асуултын текстийг өөрчилнө үү.",
     editorProps: {
       attributes: {
         class: "prose max-w-none focus:outline-none min-h-[100px] p-4",

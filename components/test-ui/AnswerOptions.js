@@ -13,7 +13,7 @@ import {
 import { MoreIcon, DropdownIcon } from "../Icons";
 import MatrixGrid from "./MatrixGrid";
 import { deleteAnswerById } from "@/app/api/assessment";
-import { api } from "@/utils/routes";
+import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
 import {
   GalleryCircleBoldDuotone,
@@ -74,7 +74,7 @@ const AnswerOptions = ({
           uploadedImages.length > 0
         ) {
           const fileId = uploadedImages[0];
-          const imageUrl = `${api}file/${fileId}`;
+          const imageUrl = getFileUrl(fileId);
 
           const newOptions = [...question.answers];
           newOptions[index].answer.file = imageUrl;
@@ -581,7 +581,7 @@ const AnswerContent = ({
           {option.answer?.file ? (
             <div className="mt-2 relative group/image">
               <img
-                src={option.answer.file}
+                src={normalizeFileUrls(option.answer.file)}
                 alt={option.answer.value}
                 className="h-[100px] object-cover rounded"
               />

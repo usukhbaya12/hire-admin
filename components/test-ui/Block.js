@@ -23,7 +23,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { imageUploader } from "@/app/api/constant";
-import { api } from "@/utils/routes";
+import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import {
   CheckCircleBoldDuotone,
   CopyBoldDuotone,
@@ -68,7 +68,7 @@ export const Block = ({
         draggable: false,
       }),
     ],
-    content: block.value || "Энд дарж асуултын текстийг өөрчилнө үү.",
+    content: normalizeFileUrls(block.value) || "Энд дарж асуултын текстийг өөрчилнө үү.",
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onUpdateBlock(block.id, { value: editor.getHTML() });
@@ -196,7 +196,7 @@ export const Block = ({
           uploadedImages.length > 0
         ) {
           const fileId = uploadedImages[0];
-          const imageUrl = `${api}file/${fileId}`;
+          const imageUrl = getFileUrl(fileId);
 
           onUpdateBlock(block.id, { url: imageUrl });
           editor?.chain().focus().setImage({ src: imageUrl }).run();

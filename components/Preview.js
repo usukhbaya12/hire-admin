@@ -18,7 +18,7 @@ import {
 } from "antd";
 import { QUESTION_TYPES } from "@/utils/values";
 import { DropdownIcon } from "./Icons";
-import { api } from "@/utils/routes";
+import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import {
   BookmarkBoldDuotone,
   CloseCircleBoldDuotone,
@@ -319,7 +319,7 @@ const Preview = ({ assessmentData, blocks }) => {
     return (
       <div
         className="prose max-w-none py-6 px-8"
-        dangerouslySetInnerHTML={{ __html: block.value }}
+        dangerouslySetInnerHTML={{ __html: normalizeFileUrls(block.value) }}
       />
     );
   };
@@ -339,7 +339,7 @@ const Preview = ({ assessmentData, blocks }) => {
       <div className="max-w-none font-semibold leading-5">
         <div
           dangerouslySetInnerHTML={{
-            __html: extractParagraphs(question.question.name),
+            __html: extractParagraphs(normalizeFileUrls(question.question.name)),
           }}
         />
       </div>
@@ -413,7 +413,7 @@ const Preview = ({ assessmentData, blocks }) => {
                     {answer.answer.file ? (
                       <img
                         draggable="false"
-                        src={answer.answer.file}
+                        src={normalizeFileUrls(answer.answer.file)}
                         alt={`Option ${index + 1}`}
                         className="max-h-[100px] h-auto rounded-lg"
                       />
@@ -446,7 +446,7 @@ const Preview = ({ assessmentData, blocks }) => {
                     {answer.answer.file ? (
                       <img
                         draggable="false"
-                        src={answer.answer.file}
+                        src={normalizeFileUrls(answer.answer.file)}
                         alt={`Option ${index + 1}`}
                         className="max-h-[100px] h-auto rounded-lg"
                       />
@@ -816,7 +816,7 @@ const Preview = ({ assessmentData, blocks }) => {
               {question.question.file && (
                 <div className="pt-3 sm:pt-2 sm:pb-1 sm:max-w-[400px] flex sm:ml-[55px]">
                   <Image
-                    src={`${api}file/${question.question.file}`}
+                    src={getFileUrl(question.question.file)}
                     alt="Question"
                     className="object-cover rounded-xl"
                   />

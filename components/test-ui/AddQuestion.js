@@ -11,7 +11,7 @@ import {
   TrashBin2BoldDuotone,
   GalleryCircleBoldDuotone,
 } from "solar-icons";
-import { api } from "@/utils/routes";
+import { getFileUrl } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
 
 const AddQuestion = ({
@@ -111,7 +111,7 @@ const AddQuestion = ({
           uploadedImages.length > 0
         ) {
           const fileId = uploadedImages[0];
-          const imageUrl = `${api}file/${fileId}`;
+          const imageUrl = getFileUrl(fileId);
 
           // Insert image using the function from QuestionEditor
           if (
