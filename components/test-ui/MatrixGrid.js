@@ -76,8 +76,62 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
     }
   };
 
+  // Мөрийн (хариултын) ангилал — жиш ASSIST: мөр бүр нэг бодис. Баганад ангилал
+  // тохируулаагүй бол хариулт энэ мөрийн ангилалд бүртгэгдэнэ (core: matrix-category.ts).
+  const handleRowCategorySelect = (category, rowIndex) => {
+    const newAnswers = question.answers.map((answer, i) =>
+      i === rowIndex
+        ? {
+            ...answer,
+            answer: {
+              ...answer.answer,
+              category: category.id,
+              categoryName: category.name,
+            },
+          }
+        : answer
+    );
+    onUpdate({ answers: newAnswers });
+  };
+
+  const handleRowCategoryRemove = (rowIndex) => {
+    const newAnswers = question.answers.map((answer, i) =>
+      i === rowIndex
+        ? {
+            ...answer,
+            answer: { ...answer.answer, category: null, categoryName: null },
+          }
+        : answer
+    );
+    onUpdate({ answers: newAnswers });
+  };
+
+  const categoryMenuItems = (onPick) =>
+    assessmentData?.data.answerCategories?.map((category) => ({
+      key: category.id,
+      label: (
+        <div className="flex items-center gap-2">
+          <TagLineDuotone width={16} className="text-blue-800" />
+          <span className="font-semibold text-blue-800 text-sm">
+            {category.name}
+          </span>
+        </div>
+      ),
+      onClick: () => onPick(category),
+    }));
+
   const getOptionMenu = (index) => ({
     items: [
+      {
+        key: "category",
+        label: <div className="pl-2 pr-3 pt-[1px]">Ангилал тохируулах</div>,
+        icon: <PenBoldDuotone width={16} />,
+        disabled: !assessmentData?.data.answerCategories?.length,
+        children: categoryMenuItems((category) =>
+          handleRowCategorySelect(category, index)
+        ),
+        expandIcon: <DropdownIcon width={15} rotate={-90} />,
+      },
       {
         key: "remove",
         label: <div className="pl-2">Устгах</div>,
@@ -286,6 +340,18 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
                 >
                   {answer.answer.value}
                 </div>
+              )}
+              {answer.answer?.category && (
+                <Tooltip title="Ангилал устгах">
+                  <div
+                    onClick={() => handleRowCategoryRemove(rowIndex)}
+                    className="ml-2 shrink-0 bg-blue-100 px-2.5 py-0.5 gap-1.5 rounded-full text-xs font-semibold flex items-center text-blue-800 cursor-pointer hover:bg-blue-200"
+                  >
+                    <TagLineDuotone width={13} className="text-blue-800" />
+                    {answer.answer?.categoryName ||
+                      answer.answer?.category?.name}
+                  </div>
+                </Tooltip>
               )}
               <Dropdown
                 menu={getOptionMenu(rowIndex)}
