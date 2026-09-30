@@ -12,6 +12,7 @@ import {
 } from "solar-icons";
 import { Button, Tooltip } from "antd";
 import { normalizeFileUrls } from "@/utils/fileUrl";
+import QuestionIdBadge from "./QuestionIdBadge";
 
 const QuestionEditor = ({
   initialContent,
@@ -183,6 +184,7 @@ const QuestionEditor = ({
             <CheckCircleBoldDuotone width={19} className="text-green-600" />
           </Tooltip>
         )}
+        {posted && <QuestionIdBadge id={question?.id} />}
       </div>
       <div className="border rounded-3xl border-gray-300 overflow-hidden relative ml-6 w-full">
         {editor && (
