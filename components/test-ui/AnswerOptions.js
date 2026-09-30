@@ -15,6 +15,7 @@ import MatrixGrid from "./MatrixGrid";
 import { deleteAnswerById } from "@/app/api/assessment";
 import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
+import { NumberAnswer, TimeAnswer } from "./NumericAnswer";
 import {
   GalleryCircleBoldDuotone,
   MinusSquareBoldDuotone,
@@ -517,6 +518,46 @@ const AnswerOptions = ({
     );
   };
 
+  // NUMBER (90) / TIME (100): ганц хариулт (ангилал тохируулахад) + хариулах талбарын
+  // урьдчилсан харагдац (идэвхгүй). Тохиргоо нь баруун талын самбарт (Tools).
+  const renderNumeric = () => {
+    const Field = question.type === 100 ? TimeAnswer : NumberAnswer;
+    return (
+      <div className="w-full">
+        {question.answers?.slice(0, 1).map((option, index) => (
+          <div key={index} className="flex items-center gap-2 group">
+            <div className="flex-1">
+              <AnswerContent
+                option={option}
+                index={index}
+                editingOptionIndex={editingOptionIndex}
+                setEditingOptionIndex={setEditingOptionIndex}
+                handleOptionChange={handleOptionChange}
+                handleOptionBlur={handleOptionBlur}
+                handleRemoveCategory={handleRemoveCategory}
+                handleCancelReverse={handleCancelReverse}
+                handleCancelNegative={handleCancelNegative}
+                getOptionMenu={getOptionMenu}
+                question={question}
+                customControl={
+                  <div className="w-96">
+                    <Field
+                      key={JSON.stringify(question.question?.settings ?? {})}
+                      question={question}
+                      value={undefined}
+                      onChange={() => {}}
+                      disabled
+                    />
+                  </div>
+                }
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderMap = {
     10: renderSingleOrMultipleChoice,
     20: renderSingleOrMultipleChoice,
@@ -525,6 +566,8 @@ const AnswerOptions = ({
     60: renderTextInput,
     70: renderSlider,
     80: renderSliderSingle,
+    90: renderNumeric,
+    100: renderNumeric,
   };
 
   return (
@@ -596,7 +639,7 @@ const AnswerContent = ({
             </div>
           ) : (
             <div className="flex items-center w-full">
-              {question.type === 80 ? (
+              {[80, 90, 100].includes(question.type) ? (
                 <></>
               ) : editingOptionIndex === index ? (
                 <input

@@ -100,6 +100,7 @@ export default function Test() {
                             file: question.file,
                             required: question.required,
                             slider: question.slider || null,
+                            settings: question.settings || null,
                           },
                           answers: question.answers.map((answerObj) => ({
                             answer: {
@@ -135,6 +136,7 @@ export default function Test() {
                             file: question.file,
                             required: question.required,
                             slider: question.slider || null,
+                            settings: question.settings || null,
                           },
                           answers: question.answers.map((answer) => {
                             return {
@@ -212,6 +214,18 @@ export default function Test() {
   const handleBlockModification = (blockId) => {
     setModifiedBlocks((prev) => new Set(prev).add(blockId));
   };
+
+  // NUMBER (90) / TIME (100): хоосон min/max = хязгааргүй (null хэвээр). Бусад төрөл хуучнаараа.
+  const questionRange = (question) =>
+    question.type === 90 || question.type === 100
+      ? {
+          minValue: question.question?.minValue ?? null,
+          maxValue: question.question?.maxValue ?? null,
+        }
+      : {
+          minValue: question.question?.minValue || 0,
+          maxValue: question.question?.maxValue || 1,
+        };
 
   const formatAnswers = (question) => {
     if (question.type === 40) {
@@ -379,13 +393,13 @@ export default function Test() {
                 type: question.type,
                 question: {
                   name: question.question.name,
-                  minValue: question.question?.minValue || 0,
-                  maxValue: question.question?.maxValue || 1,
+                  ...questionRange(question),
                   orderNumber: question.order,
                   point: question.question.point,
                   file: question.question.file || null,
                   required: question.question.required ?? true,
                   slider: question.question.slider || null,
+                  settings: question.question.settings || null,
                 },
                 answers: formatAnswers(question),
               });
@@ -395,13 +409,13 @@ export default function Test() {
                 type: question.type,
                 question: {
                   name: question.question.name,
-                  minValue: question.question?.minValue || 0,
-                  maxValue: question.question?.maxValue || 1,
+                  ...questionRange(question),
                   point: question.question?.point || null,
                   orderNumber: question.order,
                   file: question.question.file || null,
                   required: question.question.required ?? true,
                   slider: question.question.slider || null,
+                  settings: question.question.settings || null,
                 },
                 answers: formatAnswers(question),
               });

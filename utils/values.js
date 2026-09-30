@@ -14,6 +14,10 @@ export const QUESTION_TYPES = {
   TEXT: 60,
   SLIDER: 70,
   SLIDERSINGLE: 80,
+  // Тоо оруулах: min/max, бутархай эсэх (question.settings). point = оруулсан тоо.
+  NUMBER: 90,
+  // Цаг/хугацаа (ЦЦ:ММ[:СС]): point = хугацаа settings.pointUnit нэгжээр (анхдагч минут).
+  TIME: 100,
 };
 
 export const customLocale = {
@@ -44,7 +48,12 @@ export const customLocale = {
 
 export const getDefaultAnswers = (type, count = 4) => {
   if (type === QUESTION_TYPES.TRUE_FALSE) count = 2;
-  if (type === QUESTION_TYPES.SLIDERSINGLE) count = 1;
+  if (
+    type === QUESTION_TYPES.SLIDERSINGLE ||
+    type === QUESTION_TYPES.NUMBER ||
+    type === QUESTION_TYPES.TIME
+  )
+    count = 1;
 
   const templates = {
     [QUESTION_TYPES.SINGLE]: (i) => ({
@@ -102,6 +111,13 @@ export const getDefaultAnswers = (type, count = 4) => {
         point: 0,
       },
     }),
+    // NUMBER / TIME: SLIDERSINGLE шиг ганц хариулт — зөвхөн хариултын ангилал тохируулахад.
+    [QUESTION_TYPES.NUMBER]: (i) => ({
+      answer: { value: ``, orderNumber: i, category: null, point: 0 },
+    }),
+    [QUESTION_TYPES.TIME]: (i) => ({
+      answer: { value: ``, orderNumber: i, category: null, point: 0 },
+    }),
     [QUESTION_TYPES.SLIDER]: (i) => ({
       answer: {
         value: `Сонголт ${i + 1}`,
@@ -126,4 +142,6 @@ export const questionTypes = [
   { value: QUESTION_TYPES.CONSTANT_SUM, label: "Оноо байршуулах" },
   { value: QUESTION_TYPES.SLIDER, label: "Слайдер" },
   { value: QUESTION_TYPES.SLIDERSINGLE, label: "Сингл слайдер" },
+  { value: QUESTION_TYPES.NUMBER, label: "Тоо оруулах" },
+  { value: QUESTION_TYPES.TIME, label: "Цаг, хугацаа оруулах" },
 ];

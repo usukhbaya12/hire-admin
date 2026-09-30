@@ -19,6 +19,7 @@ import {
 import { QUESTION_TYPES } from "@/utils/values";
 import { DropdownIcon } from "./Icons";
 import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
+import { NumberAnswer, TimeAnswer } from "./test-ui/NumericAnswer";
 import {
   BookmarkBoldDuotone,
   CloseCircleBoldDuotone,
@@ -53,7 +54,9 @@ const Preview = ({ assessmentData, blocks }) => {
     }));
     setAnsweredQuestions((prev) => {
       const newSet = new Set(prev);
-      newSet.add(questionId);
+      // undefined = тоо / хугацааны талбар хоосон эсвэл буруу утгатай → хариулаагүй.
+      if (value === undefined) newSet.delete(questionId);
+      else newSet.add(questionId);
       return newSet;
     });
   };
@@ -708,6 +711,20 @@ const Preview = ({ assessmentData, blocks }) => {
             ))}
           </div>
         );
+
+      case QUESTION_TYPES.NUMBER:
+      case QUESTION_TYPES.TIME: {
+        const Field =
+          question.type === QUESTION_TYPES.TIME ? TimeAnswer : NumberAnswer;
+        return (
+          <Field
+            key={question.id}
+            question={question}
+            value={answers[question.id]}
+            onChange={(v) => handleAnswer(question.id, v)}
+          />
+        );
+      }
       default:
         return null;
     }
