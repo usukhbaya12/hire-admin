@@ -10,6 +10,8 @@ import {
   InputNumber,
   Input,
   Checkbox,
+  Tooltip,
+  message,
 } from "antd";
 import InfoModal from "../modals/Info";
 import {
@@ -19,6 +21,7 @@ import {
 } from "@/utils/values";
 import { TagBoldDuotone, TagLineDuotone } from "solar-icons";
 import { DurationField } from "./NumericAnswer";
+import { sortedAnswerCategories } from "@/utils/answerCategories";
 import {
   DEFAULT_NUMBER_SETTINGS,
   DEFAULT_TIME_SETTINGS,
@@ -775,19 +778,34 @@ const BlockSettings = ({
                 {assessmentData?.data.answerCategories.length > 0 && (
                   <div className="pt-3">
                     <div className="font-bold pb-1 pl-1">Ангиллууд</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {assessmentData?.data.answerCategories.map(
+                    {/* Дугаар = Studio / тайлан дахь дэд бүлгийн дугаар ({{1-р дэд бүлгийн оноо}},
+                        {{answerCategory[1].score}}) — id-аар эрэмбэлсэн, бүх газар ижил. */}
+                    <div className="text-xs text-gray-400 pl-1">
+                      Дугаар нь тайлангийн {"{{1-р дэд бүлгийн оноо}}"} дахь дугаар. Дарж хуулна.
+                    </div>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {sortedAnswerCategories(assessmentData?.data.answerCategories).map(
                         (category, index) => (
-                          <div
-                            key={index}
-                            className="bg-blue-100 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800"
+                          <Tooltip
+                            key={category.id ?? index}
+                            title={`{{${index + 1}-р дэд бүлгийн оноо}} · {{answerCategory[${index + 1}].score}}`}
                           >
-                            <TagLineDuotone
-                              width={14}
-                              className="text-blue-800"
-                            />
-                            {category.name}
-                          </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard
+                                  ?.writeText(`{{${index + 1}-р дэд бүлгийн оноо}}`)
+                                  .then(() => message.success(`Хуулагдлаа: {{${index + 1}-р дэд бүлгийн оноо}}`))
+                                  .catch(() => {});
+                              }}
+                              className="self-start bg-blue-100 hover:bg-blue-200 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800 cursor-pointer text-left"
+                            >
+                              <span className="min-w-5 h-5 px-1 rounded-full bg-blue-800 text-white text-[11px] flex items-center justify-center">
+                                {index + 1}
+                              </span>
+                              {category.name}
+                            </button>
+                          </Tooltip>
                         ),
                       )}
                     </div>

@@ -574,11 +574,18 @@ const Questions = ({
             setTestName={(value) => handleFieldChange("name", value)}
           />
         </div>
-        {blocks.map((block) => (
+        {blocks.map((block, bi) => (
           <Block
             key={block.id}
             blocksLength={blocks.length}
             block={block}
+            // Тайлангийн {{category[N]}} / {{N-р бүлгийн …}} дугаар — асуулттай блокууд дарааллаар
+            // (hire_report categoryStats-тай ижил).
+            categoryNumber={
+              block.questions?.length
+                ? blocks.slice(0, bi + 1).filter((b) => b.questions?.length).length
+                : null
+            }
             selection={selection}
             onSelect={handleSelect}
             onUpdateBlock={updateBlock}

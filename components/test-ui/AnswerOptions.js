@@ -16,6 +16,7 @@ import { deleteAnswerById } from "@/app/api/assessment";
 import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
 import { NumberAnswer, TimeAnswer } from "./NumericAnswer";
+import { sortedAnswerCategories, answerCategoryLabel } from "@/utils/answerCategories";
 import {
   GalleryCircleBoldDuotone,
   MinusSquareBoldDuotone,
@@ -205,13 +206,13 @@ const AnswerOptions = ({
         label: <div className="pl-1 pt-[1px] pr-3">Ангилал тохируулах</div>,
         icon: <Pen2BoldDuotone width={16} />,
         disabled: !assessmentData?.data.answerCategories.length > 0,
-        children: assessmentData?.data.answerCategories.map((category) => ({
+        children: sortedAnswerCategories(assessmentData?.data.answerCategories).map((category, ci) => ({
           key: category.id,
           label: (
             <div className="flex items-center gap-2">
               <TagLineDuotone width={16} className="text-blue-800" />
               <span className="font-semibold text-blue-800 text-sm">
-                {category.name}
+                {ci + 1}. {category.name}
               </span>
             </div>
           ),
@@ -709,7 +710,11 @@ const AnswerContent = ({
               className="bg-blue-100 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800 cursor-pointer hover:bg-blue-200"
             >
               <TagLineDuotone width={14} className="text-blue-800" />
-              {option.answer?.categoryName || option.answer?.category?.name}
+              {answerCategoryLabel(
+                assessmentData?.data.answerCategories,
+                option.answer?.category,
+                option.answer?.categoryName || option.answer?.category?.name,
+              )}
             </div>
           </Tooltip>
         )}

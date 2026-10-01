@@ -37,6 +37,7 @@ import {
 export const Block = ({
   blocksLength,
   block,
+  categoryNumber,
   selection,
   onSelect,
   onUpdateBlock,
@@ -294,6 +295,23 @@ export const Block = ({
                 >
                   {block.name?.trim() || "Блок"}
                 </div>
+              )}
+              {categoryNumber != null && (
+                <Tooltip title={`Тайланд: {{${categoryNumber}-р бүлгийн оноо}} · {{category[${categoryNumber}].score}} — дарж хуулна`}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard
+                        ?.writeText(`{{category[${categoryNumber}].score}}`)
+                        .then(() => messageApi.success(`Хуулагдлаа: {{category[${categoryNumber}].score}}`))
+                        .catch(() => {});
+                    }}
+                    className="ml-2 px-1.5 py-0.5 rounded-md bg-gray-100 hover:bg-gray-200 text-[11px] font-mono text-gray-600 whitespace-nowrap"
+                  >
+                    {categoryNumber}-р бүлэг
+                  </button>
+                </Tooltip>
               )}
               {!block.isExpanded && (
                 <span className="text-gray-500 ml-3">

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { InputNumber, Button, Tooltip, Dropdown, message } from "antd";
 import { DropdownIcon, MoreIcon } from "../Icons";
 import { deleteAnswerById } from "@/app/api/assessment";
+import { sortedAnswerCategories, answerCategoryLabel } from "@/utils/answerCategories";
 import {
   PenBoldDuotone,
   TagBoldDuotone,
@@ -107,13 +108,13 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
   };
 
   const categoryMenuItems = (onPick) =>
-    assessmentData?.data.answerCategories?.map((category) => ({
+    sortedAnswerCategories(assessmentData?.data.answerCategories).map((category, ci) => ({
       key: category.id,
       label: (
         <div className="flex items-center gap-2">
           <TagLineDuotone width={16} className="text-blue-800" />
           <span className="font-semibold text-blue-800 text-sm">
-            {category.name}
+            {ci + 1}. {category.name}
           </span>
         </div>
       ),
@@ -150,14 +151,14 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
         label: <div className="pl-2 pr-3 pt-[1px]">Ангилал тохируулах</div>,
         icon: <PenBoldDuotone width={16} />,
         disabled: !assessmentData?.data.answerCategories?.length,
-        children: assessmentData?.data.answerCategories?.map((category) => ({
+        children: sortedAnswerCategories(assessmentData?.data.answerCategories).map((category, ci) => ({
           key: category.id,
           label: (
             <div>
               <div className="flex items-center gap-2">
                 <TagLineDuotone width={16} className="text-blue-800" />
                 <span className="font-semibold text-blue-800 text-sm">
-                  {category.name}
+                  {ci + 1}. {category.name}
                 </span>
               </div>
             </div>
@@ -288,7 +289,11 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
                       onClick={() => handleRemoveCategory(index)}
                     >
                       <TagLineDuotone width={14} className="text-blue-800" />
-                      {point.categoryName || point.category?.name}
+                      {answerCategoryLabel(
+                        assessmentData?.data.answerCategories,
+                        point.category,
+                        point.categoryName || point.category?.name,
+                      )}
                     </div>
                   </Tooltip>
                 ) : (
@@ -348,8 +353,11 @@ const MatrixGrid = ({ question, onUpdate, assessmentData }) => {
                     className="ml-2 shrink-0 bg-blue-100 px-2.5 py-0.5 gap-1.5 rounded-full text-xs font-semibold flex items-center text-blue-800 cursor-pointer hover:bg-blue-200"
                   >
                     <TagLineDuotone width={13} className="text-blue-800" />
-                    {answer.answer?.categoryName ||
-                      answer.answer?.category?.name}
+                    {answerCategoryLabel(
+                      assessmentData?.data.answerCategories,
+                      answer.answer?.category,
+                      answer.answer?.categoryName || answer.answer?.category?.name,
+                    )}
                   </div>
                 </Tooltip>
               )}
