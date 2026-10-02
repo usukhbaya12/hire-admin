@@ -11,6 +11,8 @@ import {
   TextUnderlineCircleBoldDuotone,
 } from "solar-icons";
 import { Button, Tooltip } from "antd";
+import { normalizeFileUrls } from "@/utils/fileUrl";
+import QuestionIdBadge from "./QuestionIdBadge";
 
 const QuestionEditor = ({
   initialContent,
@@ -37,7 +39,7 @@ const QuestionEditor = ({
         allowBase64: true,
       }),
     ],
-    content: initialContent || "Энд дарж асуултын текстийг өөрчилнө үү.",
+    content: normalizeFileUrls(initialContent) || "Энд дарж асуултын текстийг өөрчилнө үү.",
     editorProps: {
       attributes: {
         class: "prose max-w-none focus:outline-none min-h-[100px] p-4",
@@ -182,6 +184,7 @@ const QuestionEditor = ({
             <CheckCircleBoldDuotone width={19} className="text-green-600" />
           </Tooltip>
         )}
+        {posted && <QuestionIdBadge id={question?.id} />}
       </div>
       <div className="border rounded-3xl border-gray-300 overflow-hidden relative ml-6 w-full">
         {editor && (

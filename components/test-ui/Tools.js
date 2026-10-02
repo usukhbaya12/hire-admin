@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { MenuIcon, DropdownIcon } from "../Icons";
-import { Select, Divider, Collapse, Switch, InputNumber, Input } from "antd";
+import {
+  Select,
+  Divider,
+  Collapse,
+  Switch,
+  InputNumber,
+  Input,
+  Checkbox,
+  Tooltip,
+  message,
+} from "antd";
 import InfoModal from "../modals/Info";
 import {
   getDefaultAnswers,
@@ -10,6 +20,16 @@ import {
   QUESTION_TYPES,
 } from "@/utils/values";
 import { TagBoldDuotone, TagLineDuotone } from "solar-icons";
+import { DurationField } from "./NumericAnswer";
+import { sortedAnswerCategories } from "@/utils/answerCategories";
+import {
+  DEFAULT_NUMBER_SETTINGS,
+  DEFAULT_TIME_SETTINGS,
+  formatDuration,
+  pointToSeconds,
+  secondsToPoint,
+  timeParts,
+} from "@/utils/numericAnswer";
 
 export const Tools = ({
   selection,
@@ -71,6 +91,27 @@ const QuestionSettings = ({ question, onUpdate }) => {
       },
       answers,
     };
+
+    // Тоо / хугацаа: min/max нь хоосон байж болно (= хязгааргүй), тохиргоо нь settings-д.
+    if (type === QUESTION_TYPES.NUMBER) {
+      updates.question = {
+        ...updates.question,
+        minValue: 0,
+        maxValue: 100,
+        slider: "",
+        settings: { ...DEFAULT_NUMBER_SETTINGS },
+      };
+    } else if (type === QUESTION_TYPES.TIME) {
+      updates.question = {
+        ...updates.question,
+        minValue: 0,
+        maxValue: 1440, // 24:00 (минутаар)
+        slider: "",
+        settings: { ...DEFAULT_TIME_SETTINGS },
+      };
+    } else {
+      updates.question = { ...updates.question, settings: null };
+    }
 
     onUpdate(question.id, updates);
   };
@@ -245,6 +286,219 @@ const QuestionSettings = ({ question, onUpdate }) => {
           <Divider />
         </>
       )}
+
+      {question.type === QUESTION_TYPES.NUMBER && (
+        <NumberSettings question={question} onUpdate={onUpdate} />
+      )}
+
+      {question.type === QUESTION_TYPES.TIME && (
+        <TimeSettings question={question} onUpdate={onUpdate} />
+      )}
+    </>
+  );
+};
+
+const numOrNull = (v) =>
+  v === null || v === undefined || v === "" || !Number.isFinite(Number(v))
+    ? null
+    : Number(v);
+
+const RangeWarning = ({ min, max }) =>
+  min !== null && max !== null && min > max ? (
+    <div className="text-red-500 text-xs">
+      Хамгийн бага утга хамгийн ихээс их байна.
+    </div>
+  ) : null;
+
+const NumberSettings = ({ question, onUpdate }) => {
+  const q = question.question || {};
+  const s = { ...DEFAULT_NUMBER_SETTINGS, ...(q.settings || {}) };
+  const set = (patch) =>
+    onUpdate(question.id, { question: { ...q, ...patch } });
+  const setS = (patch) => set({ settings: { ...s, ...patch } });
+  const min = numOrNull(q.minValue);
+  const max = numOrNull(q.maxValue);
+  const places = Number(s.decimalPlaces) || 2;
+  const precision = s.decimal ? places : 0;
+  const step = s.decimal ? Math.pow(10, -places) : 1;
+
+  return (
+    <>
+      <div className="font-bold px-8">Тоон утгын тохиргоо</div>
+      <Divider />
+      <div className="px-8 space-y-3">
+        <div>
+          <div className="pb-1">Хамгийн бага</div>
+          <InputNumber
+            value={min}
+            precision={precision}
+            step={step}
+            placeholder="хязгааргүй"
+            onChange={(v) => set({ minValue: numOrNull(v) })}
+            className="w-40"
+          />
+        </div>
+        <div>
+          <div className="pb-1">Хамгийн их</div>
+          <InputNumber
+            value={max}
+            precision={precision}
+            step={step}
+            placeholder="хязгааргүй"
+            onChange={(v) => set({ maxValue: numOrNull(v) })}
+            className="w-40"
+          />
+        </div>
+        <RangeWarning min={min} max={max} />
+        <div className="text-xs text-gray-400">Хоосон бол хязгааргүй.</div>
+      </div>
+      <Divider />
+      <div className="px-8 flex items-center gap-2">
+        <Switch
+          size="small"
+          checked={!!s.decimal}
+          onChange={(checked) => setS({ decimal: checked })}
+        />
+        <span>Бутархай тоо зөвшөөрөх</span>
+      </div>
+      {s.decimal && (
+        <div className="px-8 pt-3 flex items-center gap-2">
+          <InputNumber
+            min={1}
+            max={4}
+            value={places}
+            onChange={(v) => setS({ decimalPlaces: v || 1 })}
+            className="w-20"
+          />
+          <span>орон (таслалаас хойш)</span>
+        </div>
+      )}
+      <Divider />
+      <div className="font-bold px-8">Нэгж</div>
+      <div className="px-8 pt-2">
+        <Input
+          maxLength={20}
+          placeholder="Жишээ нь: өдөр, кг, удаа"
+          value={s.unit || ""}
+          onChange={(e) => setS({ unit: e.target.value })}
+        />
+      </div>
+      <Divider />
+    </>
+  );
+};
+
+const TIME_PARTS = [
+  { key: "hours", part: "h", label: "Цаг" },
+  { key: "minutes", part: "m", label: "Минут" },
+  { key: "seconds", part: "s", label: "Секунд" },
+];
+
+const TimeSettings = ({ question, onUpdate }) => {
+  const q = question.question || {};
+  const s = { ...DEFAULT_TIME_SETTINGS, ...(q.settings || {}) };
+  const parts = timeParts(s);
+  const set = (patch) =>
+    onUpdate(question.id, { question: { ...q, ...patch } });
+  // min/max нь point-той ижил нэгжээр (settings.pointUnit) хадгалагдана.
+  const toSec = (v, st = s) =>
+    numOrNull(v) === null ? null : pointToSeconds(Number(v), st);
+  const toPoint = (sec, st = s) =>
+    sec === null || sec === undefined ? null : secondsToPoint(sec, st);
+  const minSec = toSec(q.minValue);
+  const maxSec = toSec(q.maxValue);
+
+  const togglePart = (key, checked) => {
+    const next = {
+      ...s,
+      hours: parts.includes("h"),
+      minutes: parts.includes("m"),
+      seconds: parts.includes("s"),
+      [key]: checked,
+    };
+    if (!next.hours && !next.minutes && !next.seconds) return; // ядаж нэг хэсэг
+    if (next.hours && next.seconds) next.minutes = true; // завсаргүй
+    set({ settings: next });
+  };
+
+  const changeUnit = (pointUnit) => {
+    const next = { ...s, pointUnit };
+    set({
+      settings: next,
+      minValue: toPoint(minSec, next),
+      maxValue: toPoint(maxSec, next),
+    });
+  };
+
+  return (
+    <>
+      <div className="font-bold px-8">Хугацааны тохиргоо</div>
+      <Divider />
+      <div className="px-8">
+        <div className="pb-2">Харуулах хэсэг</div>
+        <div className="flex gap-4">
+          {TIME_PARTS.map(({ key, part, label }) => (
+            <Checkbox
+              key={key}
+              checked={parts.includes(part)}
+              disabled={
+                key === "minutes" && parts.includes("h") && parts.includes("s")
+              }
+              onChange={(e) => togglePart(key, e.target.checked)}
+            >
+              {label}
+            </Checkbox>
+          ))}
+        </div>
+        <div className="text-xs text-gray-400 pt-2">
+          Хэлбэр: {parts.map((p) => ({ h: "ЦЦ", m: "ММ", s: "СС" })[p]).join(":")}
+          {" "}(жишээ нь {formatDuration(5400 + (parts.includes("s") ? 20 : 0), parts)})
+        </div>
+      </div>
+      <Divider />
+      <div className="px-8 space-y-3">
+        <div>
+          <div className="pb-1">Хамгийн бага</div>
+          <DurationField
+            seconds={minSec}
+            settings={s}
+            onChange={(sec) => set({ minValue: toPoint(sec) })}
+          />
+        </div>
+        <div>
+          <div className="pb-1">Хамгийн их</div>
+          <DurationField
+            seconds={maxSec}
+            settings={s}
+            onChange={(sec) => set({ maxValue: toPoint(sec) })}
+          />
+        </div>
+        <RangeWarning min={minSec} max={maxSec} />
+        <div className="text-xs text-gray-400">Хоосон бол хязгааргүй.</div>
+      </div>
+      <Divider />
+      <div className="font-bold px-8">Оноо болгох нэгж</div>
+      <div className="px-8 pt-2">
+        <Select
+          value={s.pointUnit}
+          onChange={changeUnit}
+          suffixIcon={<DropdownIcon width={15} height={15} />}
+          options={[
+            { value: "minute", label: "Минут" },
+            { value: "hour", label: "Цаг" },
+            { value: "second", label: "Секунд" },
+          ]}
+          className="w-full"
+        />
+        <div className="text-xs text-gray-400 pt-2">
+          Тайлан, томьёонд хугацаа{" "}
+          {{ minute: "минутаар", hour: "цагаар", second: "секундээр" }[
+            s.pointUnit
+          ] ?? "минутаар"}{" "}
+          орно: 01:30 → {secondsToPoint(5400, s)}
+        </div>
+      </div>
+      <Divider />
     </>
   );
 };
@@ -524,19 +778,34 @@ const BlockSettings = ({
                 {assessmentData?.data.answerCategories.length > 0 && (
                   <div className="pt-3">
                     <div className="font-bold pb-1 pl-1">Ангиллууд</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {assessmentData?.data.answerCategories.map(
+                    {/* Дугаар = Studio / тайлан дахь дэд бүлгийн дугаар ({{1-р дэд бүлгийн оноо}},
+                        {{answerCategory[1].score}}) — id-аар эрэмбэлсэн, бүх газар ижил. */}
+                    <div className="text-xs text-gray-400 pl-1">
+                      Дугаар нь тайлангийн {"{{1-р дэд бүлгийн оноо}}"} дахь дугаар. Дарж хуулна.
+                    </div>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {sortedAnswerCategories(assessmentData?.data.answerCategories).map(
                         (category, index) => (
-                          <div
-                            key={index}
-                            className="bg-blue-100 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800"
+                          <Tooltip
+                            key={category.id ?? index}
+                            title={`{{${index + 1}-р дэд бүлгийн оноо}} · {{answerCategory[${index + 1}].score}}`}
                           >
-                            <TagLineDuotone
-                              width={14}
-                              className="text-blue-800"
-                            />
-                            {category.name}
-                          </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard
+                                  ?.writeText(`{{${index + 1}-р дэд бүлгийн оноо}}`)
+                                  .then(() => message.success(`Хуулагдлаа: {{${index + 1}-р дэд бүлгийн оноо}}`))
+                                  .catch(() => {});
+                              }}
+                              className="self-start bg-blue-100 hover:bg-blue-200 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800 cursor-pointer text-left"
+                            >
+                              <span className="min-w-5 h-5 px-1 rounded-full bg-blue-800 text-white text-[11px] flex items-center justify-center">
+                                {index + 1}
+                              </span>
+                              {category.name}
+                            </button>
+                          </Tooltip>
                         ),
                       )}
                     </div>

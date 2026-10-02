@@ -16,7 +16,7 @@ import {
 import { DropdownIcon } from "./Icons";
 import { PlusOutlined } from "@ant-design/icons";
 import { imageUploader, getUsers } from "@/app/api/constant";
-import { api } from "@/utils/routes";
+import { getFileUrl } from "@/utils/fileUrl";
 import { TestName } from "./test-ui/TestName";
 import Image from "next/image";
 import {
@@ -685,7 +685,7 @@ const Settings = ({
                         uid: "-1",
                         name: "Тестийн зураг",
                         status: "done",
-                        url: `${api}file/${imageUrl}`,
+                        url: getFileUrl(imageUrl),
                       },
                     ]
                   : []
@@ -1147,7 +1147,7 @@ const Settings = ({
                   />
                   <div className="absolute top-1 inset-x-0 h-[200px] sm:h-[150px] md:h-[150px] xl:h-[200px] 2xl:h-[250px] flex items-start justify-center overflow-hidden">
                     <Image
-                      src={`${api}file/${assessmentData.data.icons}`}
+                      src={getFileUrl(assessmentData.data.icons)}
                       alt="Assessment Icon"
                       width={600}
                       height={200}

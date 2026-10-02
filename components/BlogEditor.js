@@ -46,7 +46,7 @@ import {
   imageUploader,
 } from "@/app/api/constant";
 
-import { api } from "@/utils/routes";
+import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import {
   CloseCircleBoldDuotone,
   CodeCircleBoldDuotone,
@@ -196,7 +196,7 @@ const useUploader = (messageApi) => {
         });
         return {
           id: fileId,
-          url: `${api}file/${fileId}`,
+          url: getFileUrl(fileId),
           name: file.name,
         };
       } else {
@@ -516,9 +516,9 @@ const BlogEditor = () => {
           if (response.success && response.data) {
             const { image, ...blogData } = response.data;
             setBlog(blogData);
-            if (editor) editor.commands.setContent(blogData.content);
+            if (editor) editor.commands.setContent(normalizeFileUrls(blogData.content));
             if (image) {
-              const imageUrl = `${api}file/${image}`;
+              const imageUrl = getFileUrl(image);
               setFileList([
                 { uid: "-1", name: "cover.jpg", status: "done", url: imageUrl },
               ]);

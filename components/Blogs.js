@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import InfoModal from "./modals/Info";
 import { customLocale } from "@/utils/values";
 import Image from "next/image";
-import { api } from "@/utils/routes";
+import { getFileUrl } from "@/utils/fileUrl";
 import { getBlogs, deleteBlogById, updateBlogById } from "@/app/api/constant";
 import {
   BookmarkBoldDuotone,
@@ -213,7 +213,7 @@ const Blogs = () => {
         <div className="w-12 h-12 relative overflow-hidden rounded-lg">
           {image ? (
             <Image
-              src={`${api}file/${image}`}
+              src={getFileUrl(image)}
               alt="Blog thumbnail"
               fill
               className="object-cover"

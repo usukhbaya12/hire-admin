@@ -50,6 +50,7 @@ export default function PreviewPage() {
                 required: question.required,
                 file: question.file,
                 slider: question.slider,
+                settings: question.settings || null,
               },
               answers: question.answers.map((answer) => ({
                 answer: {

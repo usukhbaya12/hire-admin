@@ -31,7 +31,7 @@ import {
   TrashBin2BoldDuotone,
 } from "solar-icons";
 import { InboxOutlined } from "@ant-design/icons";
-import { api } from "@/utils/routes";
+import { getFileUrl } from "@/utils/fileUrl";
 import ResultConfiguration from "./Interval";
 import { formatDemoResults, generateDemoData } from "./Demo";
 const { Dragger } = Upload;
@@ -329,7 +329,7 @@ const Report = ({
           uid: "-1",
           name: assessmentData.data.exampleReport,
           status: "done",
-          url: `${api}file/${assessmentData.data.exampleReport}`,
+          url: getFileUrl(assessmentData.data.exampleReport),
         },
       ]);
     } else {

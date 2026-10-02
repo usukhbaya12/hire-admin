@@ -13,8 +13,10 @@ import {
 import { MoreIcon, DropdownIcon } from "../Icons";
 import MatrixGrid from "./MatrixGrid";
 import { deleteAnswerById } from "@/app/api/assessment";
-import { api } from "@/utils/routes";
+import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
+import { NumberAnswer, TimeAnswer } from "./NumericAnswer";
+import { sortedAnswerCategories, answerCategoryLabel } from "@/utils/answerCategories";
 import {
   GalleryCircleBoldDuotone,
   MinusSquareBoldDuotone,
@@ -74,7 +76,7 @@ const AnswerOptions = ({
           uploadedImages.length > 0
         ) {
           const fileId = uploadedImages[0];
-          const imageUrl = `${api}file/${fileId}`;
+          const imageUrl = getFileUrl(fileId);
 
           const newOptions = [...question.answers];
           newOptions[index].answer.file = imageUrl;
@@ -204,13 +206,13 @@ const AnswerOptions = ({
         label: <div className="pl-1 pt-[1px] pr-3">Ангилал тохируулах</div>,
         icon: <Pen2BoldDuotone width={16} />,
         disabled: !assessmentData?.data.answerCategories.length > 0,
-        children: assessmentData?.data.answerCategories.map((category) => ({
+        children: sortedAnswerCategories(assessmentData?.data.answerCategories).map((category, ci) => ({
           key: category.id,
           label: (
             <div className="flex items-center gap-2">
               <TagLineDuotone width={16} className="text-blue-800" />
               <span className="font-semibold text-blue-800 text-sm">
-                {category.name}
+                {ci + 1}. {category.name}
               </span>
             </div>
           ),
@@ -517,6 +519,46 @@ const AnswerOptions = ({
     );
   };
 
+  // NUMBER (90) / TIME (100): ганц хариулт (ангилал тохируулахад) + хариулах талбарын
+  // урьдчилсан харагдац (идэвхгүй). Тохиргоо нь баруун талын самбарт (Tools).
+  const renderNumeric = () => {
+    const Field = question.type === 100 ? TimeAnswer : NumberAnswer;
+    return (
+      <div className="w-full">
+        {question.answers?.slice(0, 1).map((option, index) => (
+          <div key={index} className="flex items-center gap-2 group">
+            <div className="flex-1">
+              <AnswerContent
+                option={option}
+                index={index}
+                editingOptionIndex={editingOptionIndex}
+                setEditingOptionIndex={setEditingOptionIndex}
+                handleOptionChange={handleOptionChange}
+                handleOptionBlur={handleOptionBlur}
+                handleRemoveCategory={handleRemoveCategory}
+                handleCancelReverse={handleCancelReverse}
+                handleCancelNegative={handleCancelNegative}
+                getOptionMenu={getOptionMenu}
+                question={question}
+                customControl={
+                  <div className="w-96">
+                    <Field
+                      key={JSON.stringify(question.question?.settings ?? {})}
+                      question={question}
+                      value={undefined}
+                      onChange={() => {}}
+                      disabled
+                    />
+                  </div>
+                }
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderMap = {
     10: renderSingleOrMultipleChoice,
     20: renderSingleOrMultipleChoice,
@@ -525,6 +567,8 @@ const AnswerOptions = ({
     60: renderTextInput,
     70: renderSlider,
     80: renderSliderSingle,
+    90: renderNumeric,
+    100: renderNumeric,
   };
 
   return (
@@ -581,7 +625,7 @@ const AnswerContent = ({
           {option.answer?.file ? (
             <div className="mt-2 relative group/image">
               <img
-                src={option.answer.file}
+                src={normalizeFileUrls(option.answer.file)}
                 alt={option.answer.value}
                 className="h-[100px] object-cover rounded"
               />
@@ -596,7 +640,7 @@ const AnswerContent = ({
             </div>
           ) : (
             <div className="flex items-center w-full">
-              {question.type === 80 ? (
+              {[80, 90, 100].includes(question.type) ? (
                 <></>
               ) : editingOptionIndex === index ? (
                 <input
@@ -666,7 +710,11 @@ const AnswerContent = ({
               className="bg-blue-100 px-2.5 py-0.5 gap-2 rounded-full text-sm font-semibold flex items-center text-blue-800 cursor-pointer hover:bg-blue-200"
             >
               <TagLineDuotone width={14} className="text-blue-800" />
-              {option.answer?.categoryName || option.answer?.category?.name}
+              {answerCategoryLabel(
+                assessmentData?.data.answerCategories,
+                option.answer?.category,
+                option.answer?.categoryName || option.answer?.category?.name,
+              )}
             </div>
           </Tooltip>
         )}

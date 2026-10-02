@@ -1,5 +1,27 @@
 import { QUESTION_TYPES } from "@/utils/values";
 
+const isNumericType = (type) =>
+  type === QUESTION_TYPES.NUMBER || type === QUESTION_TYPES.TIME;
+
+// NUMBER / TIME: min/max нь point-той ижил нэгжээр (хоосон бол хязгааргүй → demo-д 0..min+10).
+const numericRange = (question) => {
+  const minRaw = parseFloat(question.minValue);
+  const maxRaw = parseFloat(question.maxValue);
+  const min = Number.isFinite(minRaw) ? minRaw : 0;
+  const max = Number.isFinite(maxRaw) ? maxRaw : min + 10;
+  return { min, max: Math.max(min, max) };
+};
+
+const randomNumericDemo = (question) => {
+  const { min, max } = numericRange(question);
+  if (question.type === QUESTION_TYPES.NUMBER && !question.settings?.decimal) {
+    const lo = Math.ceil(min);
+    const hi = Math.max(lo, Math.floor(max));
+    return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+  }
+  return Math.round((min + Math.random() * (max - min)) * 100) / 100;
+};
+
 const generateQuestionDemoValue = (question) => {
   const type = question.type;
   const answers = question.answers || [];
@@ -86,6 +108,11 @@ const generateQuestionDemoValue = (question) => {
       return "Жишээ хариулт";
     }
 
+    case QUESTION_TYPES.NUMBER:
+    case QUESTION_TYPES.TIME: {
+      return randomNumericDemo(question);
+    }
+
     default:
       return null;
   }
@@ -158,6 +185,11 @@ const calculateQuestionPoints = (question, answerValue) => {
 
     case QUESTION_TYPES.TEXT: {
       return 0;
+    }
+
+    case QUESTION_TYPES.NUMBER:
+    case QUESTION_TYPES.TIME: {
+      return Number(answerValue) || 0;
     }
 
     default:
@@ -273,6 +305,12 @@ export const generateDemoData = (
             demoData.byAnswerCategory[categoryName].count++;
           }
         });
+      } else if (isNumericType(type)) {
+        const categoryName = answers[0]?.category?.name;
+        if (categoryName && demoData.byAnswerCategory[categoryName]) {
+          demoData.byAnswerCategory[categoryName].points.push(points);
+          demoData.byAnswerCategory[categoryName].count++;
+        }
       } else if (type === QUESTION_TYPES.SLIDERSINGLE) {
         const answer = answers[0];
         const categoryName = answer?.category?.name;
@@ -490,6 +528,11 @@ export const calculateMinMaxValues = (
             totalAnswers += categoryAnswers.length;
             min += categoryAnswers.length * minValue;
             max += categoryAnswers.length * maxValue;
+          } else if (isNumericType(type)) {
+            const range = numericRange(question);
+            totalAnswers += 1;
+            min += range.min;
+            max += range.max;
           } else if (type === QUESTION_TYPES.SLIDERSINGLE) {
             totalAnswers += 1;
             min += minValue;
@@ -564,6 +607,15 @@ export const calculateMinMaxValues = (
     const maxValue = parseInt(question.maxValue) || 10;
 
     switch (type) {
+      case QUESTION_TYPES.NUMBER:
+      case QUESTION_TYPES.TIME: {
+        const range = numericRange(question);
+        totalAnswers += 1;
+        min += range.min;
+        max += range.max;
+        break;
+      }
+
       case QUESTION_TYPES.SLIDERSINGLE:
         totalAnswers += 1;
         min += minValue;
