@@ -1,5 +1,5 @@
 "use server";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 import { getAuthToken } from "@/utils/auth";
 
 export const createAssessment = async (values) => {
@@ -24,7 +24,8 @@ export const createAssessment = async (values) => {
       category: values.category,
       icons: values.icons,
       answerCategories: values.answerCategories,
-      status: 20,
+      status: values.status ?? 20,
+      owner: values.owner,
     };
     const res = await fetch(`${api}assessment`, {
       method: "POST",
@@ -184,6 +185,37 @@ export const deleteAssessmentById = async (id) => {
         Authorization: `Bearer ${token}`,
       },
     }).then((d) => d.json());
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
+// Тухайн assessment-ийг (questionCategory, question, answer, answerCategory,
+// тохиргоо гэх мэт бүх агуулгыг) хуулж, шинэ assessment үүсгэнэ.
+// Core: GET /question/copy/:id (Role: admin, super_admin, tester)
+export const copyAssessment = async (id) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}question/copy/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }).then((d) => d.json());
+
     return {
       data: res.payload,
       token: true,
@@ -564,5 +596,129 @@ export const getReport = async (code) => {
       success: false,
       message: error.message || "Сервертэй холбогдоход алдаа гарлаа.",
     };
+  }
+};
+
+// ---- Нөхцөлт алгасах (branching) дүрэм ----
+export const getQuestionRules = async () => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}question/rule`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+    return { data: res.payload, token: true, success: res.succeed };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
+  }
+};
+
+export const createQuestionRule = async (values) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const body = {
+      targetQuestionId: values.targetQuestionId,
+      dependsOnQuestionId: values.dependsOnQuestionId,
+      dependsOnAnswerId: values.dependsOnAnswerId ?? null,
+      action: values.action ?? "skip",
+    };
+    const res = await fetch(`${api}question/rule`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }).then((d) => d.json());
+    // Сервер дүрмийг шалгаж татгалзвал (цикл, өөртэйгөө, буруу төрөл …) `message` ирнэ.
+    return {
+      data: res.payload,
+      token: true,
+      success: res.succeed,
+      message: res.succeed ? undefined : res.message,
+    };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
+  }
+};
+
+export const deleteQuestionRule = async (id) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}question/rule/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+    return { data: res.payload, token: true, success: res.succeed };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
+  }
+};
+
+// Тухайн тестийн (code) QR-ийг авна. Клиент QR уншаад и-мэйлгүйгээр тест өгнө.
+export const getExamQr = async (code) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}exam/qr/${code}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Сервертэй холбогдоход алдаа гарлаа.",
+    };
+  }
+};
+
+/**
+ * Байгууллагын үйлчилгээнд зориулсан public QR авна.
+ * Буцаах утга: { qr, url, assessmentName, orgName, showResultOnComplete }
+ */
+export const getServicePublicQr = async (serviceId) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}userService/${serviceId}/public-qr`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }).then((d) => d.json());
+    return {
+      data: res.payload,
+      token: true,
+      message: res?.message,
+      status: res?.status,
+      success: res.succeed,
+    };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
   }
 };

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 
 export default async function ProtectedLayout({ children }) {
   const session = await getServerSession(authOptions);

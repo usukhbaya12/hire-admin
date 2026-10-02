@@ -1,7 +1,7 @@
 "use server";
 
 import { NextResponse } from "next/server";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 import { getAuthToken } from "@/utils/auth";
 
 export async function GET(req, context) {

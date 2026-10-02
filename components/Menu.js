@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DropdownIcon, MenuIcon } from "./Icons";
 import { Divider } from "antd";
 import {
@@ -11,6 +12,7 @@ import {
   LetterBoldDuotone,
   LightbulbBoltBoldDuotone,
   MoneyBagBoldDuotone,
+  ChartSquareBoldDuotone,
   NotesBoldDuotone,
   PenNewRoundBoldDuotone,
   PeopleNearbyBoldDuotone,
@@ -19,6 +21,7 @@ import {
 const Menu = () => {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState(null);
+  const { data: session } = useSession();
 
   const menuItems = [
     {
@@ -81,6 +84,17 @@ const Menu = () => {
       ],
       icon: <HandShakeBoldDuotone width={18} />,
     },
+    // №11: Хяналт — зөвхөн super admin (core `/monitor/*` мөн 403 өгнө).
+    ...(session?.user?.role === 10
+      ? [
+          {
+            name: "Хяналт",
+            key: "monitor",
+            href: "/monitor",
+            icon: <ChartSquareBoldDuotone width={18} />,
+          },
+        ]
+      : []),
   ];
 
   const isActive = (href) => pathname === href;

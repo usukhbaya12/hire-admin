@@ -91,7 +91,7 @@ const Report = ({
               setAggregations([{ field: "point", operation: "sum" }]);
             }
 
-            const filterEntries = Object.entries(response.data.filters);
+            const filterEntries = Object.entries(response.data.filters || {});
             if (filterEntries.length > 0) {
               setFilters(
                 filterEntries.map(([field, value]) => ({

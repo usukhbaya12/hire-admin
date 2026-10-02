@@ -160,16 +160,16 @@ const IconRedo = () => <UndoRightRoundBold width={20} />;
 const useUploader = (messageApi) => {
   const upload = async (file, type = "image") => {
     const isVideo = type === "video";
-    const videoSizeLimit = 50 * 1024 * 1024; // 50MB
-    const imageSizeLimit = 3 * 1024 * 1024; // 3MB
+    const videoSizeLimit = 5 * 1024 * 1024; // 5MB
+    const imageSizeLimit = 1024 * 1024; // 1MB
 
     if (isVideo && file.size > videoSizeLimit) {
-      messageApi.error("50MB-с ихгүй хэмжээтэй бичлэг оруулна уу.");
+      messageApi.error("5MB-с ихгүй хэмжээтэй бичлэг оруулна уу.");
       return null;
     }
 
     if (!isVideo && file.size > imageSizeLimit) {
-      messageApi.error("3MB-с ихгүй хэмжээтэй зураг оруулна уу.");
+      messageApi.error("1MB-с ихгүй хэмжээтэй зураг оруулна уу.");
       return null;
     }
 
@@ -632,7 +632,7 @@ const BlogEditor = () => {
   return (
     <div className="flex flex-col">
       {contextHolder}
-      <div className="fixed w-full top-0 z-40 bg-white mt-[66px]">
+      <div className="fixed w-full top-0 z-40 bg-white">
         <Header />
         <div className="flex border-b border-neutral pl-8 pr-11 justify-between items-end fixed w-full bg-white z-10">
           <div className="flex gap-6">

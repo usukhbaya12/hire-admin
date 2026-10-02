@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 
 export const authOptions = {
   providers: [

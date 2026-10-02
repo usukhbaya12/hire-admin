@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthToken } from "@/utils/auth";
-import { api } from "@/utils/routes";
+import { apiInternal as api } from "@/utils/routes";
 
 export const handlePasswordChange = async (data) => {
   try {
@@ -30,15 +30,13 @@ export const handlePasswordChange = async (data) => {
   }
 };
 
-//d
-
 export async function imageUploader(images) {
   try {
     const token = await getAuthToken();
     let res = await fetch(`${api}upload`, {
       method: "POST",
-      cache: "no-store",
       headers: {
+        cache: "no-store",
         Authorization: `Bearer ${token ?? ""}`,
       },
       body: images,

@@ -23,12 +23,14 @@ import {
   ChatRoundLineBoldDuotone,
   ChatRoundLineDuotone,
   Dialog2LineDuotone,
+  CopyBoldDuotone,
 } from "solar-icons";
 import {
   getAssessmentsNew,
   createAssessment,
   updateAssessmentById,
   deleteAssessmentById,
+  copyAssessment,
   getAssessmentCategory,
 } from "@/app/api/assessment";
 import { Button } from "./ui/button";
@@ -71,6 +73,9 @@ import OkModal from "./modals/Ok";
 import { CommentOutlined } from "@ant-design/icons";
 import { MessageCircleMore } from "lucide-react";
 
+// Тестийг хувилах / устгах товчийг түр нуусан. Буцааж харуулах бол true болгоно.
+const SHOW_DUPLICATE_DELETE_ACTIONS = false;
+
 const ASSESSMENT_TYPE = {
   TEST: 10,
   SURVEY: 20,
@@ -81,6 +86,9 @@ const STATUS = {
   ARCHIVED: 20,
   FEATURED: 30,
 };
+
+// Зөвхөн тухайн байгууллагад зориулсан (нийтийн жагсаалтад харагдахгүй)
+const ASSESSMENT_STATUS_ONLY = 40;
 
 const typeOptions = [
   { value: "", label: "Бүх төрөл" },
@@ -469,7 +477,8 @@ export default function TestsPageClient({
           duration: 0,
           type: formData.type,
           answerCategories,
-          status: STATUS.ARCHIVED,
+          status: formData.orgOnly ? ASSESSMENT_STATUS_ONLY : STATUS.ARCHIVED,
+          owner: formData.owner || undefined,
         });
 
         if (response?.success && response?.data?.id) {
@@ -565,6 +574,40 @@ export default function TestsPageClient({
   const handlePreview = useCallback((item) => {
     window.open(`/preview/${item.id}`, "_blank", "noopener,noreferrer");
   }, []);
+
+  const handleDuplicate = useCallback(
+    async (item) => {
+      if (!item?.id) return;
+      try {
+        setActionLoading(true);
+        setActiveRowId(item.id);
+
+        const response = await copyAssessment(item.id);
+        // Анхаар: core-ийн question/copy/:id нь шинэ assessment-ийн ID-г
+        // объект биш, шууд тоо хэлбэрээр буцаадаг (assessmentDao.create() → res.id).
+        const newId = response?.data?.id ?? response?.data;
+
+        if (response?.success && newId) {
+          toast.success(
+            `"${item.name}"-г хуулж, шинэ тест үүсгэлээ.`,
+          );
+          await fetchData({ page: 1 });
+          router.push(`/test/${newId}`);
+        } else {
+          toast.error(
+            response?.message || "Тест хуулахад алдаа гарлаа.",
+          );
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Сервертэй холбогдоход алдаа гарлаа.");
+      } finally {
+        setActionLoading(false);
+        setActiveRowId(null);
+      }
+    },
+    [fetchData, router, toast],
+  );
 
   const handleDeleteClick = useCallback((item) => {
     setDeleteModal({ open: true, record: item });
@@ -961,15 +1004,26 @@ export default function TestsPageClient({
                                 Урьдчилж харах
                               </DropdownMenuItem>
 
-                              <DropdownMenuSeparator />
+                              {SHOW_DUPLICATE_DELETE_ACTIONS && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDuplicate(item)}
+                                  >
+                                    <CopyBoldDuotone width={18} />
+                                    Хувилах
+                                  </DropdownMenuItem>
 
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(item)}
-                                variant="destructive"
-                              >
-                                <TrashBin2BoldDuotone width={18} />
-                                Устгах
-                              </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteClick(item)}
+                                    variant="destructive"
+                                  >
+                                    <TrashBin2BoldDuotone width={18} />
+                                    Устгах
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -995,7 +1049,7 @@ export default function TestsPageClient({
 
                     <SelectContent position="popper" side="top" align="end">
                       <SelectGroup>
-                        {[10, 20, 50, 100].map((size) => (
+                        {[10, 20, 50, pagination.total].map((size) => (
                           <SelectItem key={size} value={String(size)}>
                             {size} / хуудас
                           </SelectItem>

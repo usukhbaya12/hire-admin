@@ -15,7 +15,7 @@ import {
 } from "antd";
 import { DropdownIcon } from "./Icons";
 import { PlusOutlined } from "@ant-design/icons";
-import { imageUploader } from "@/app/api/constant";
+import { imageUploader, getUsers } from "@/app/api/constant";
 import { api } from "@/utils/routes";
 import { TestName } from "./test-ui/TestName";
 import Image from "next/image";
@@ -61,6 +61,10 @@ import {
   TextUnderlineCircleBoldDuotone,
 } from "solar-icons";
 import CharacterCount from "@tiptap/extension-character-count";
+
+// core-ийн src/base/constants.ts-тэй тохирсон утгууд
+const ASSESSMENT_STATUS_DEFAULT = 10; // Идэвхтэй/Нээлттэй
+const ASSESSMENT_STATUS_ONLY = 40; // Зөвхөн тухайн байгууллагад зориулсан
 
 const SortableBlock = ({
   block,
@@ -164,12 +168,68 @@ const Settings = ({
   const [loading, setLoading] = useState(false);
   const [blockDurationEnabled, setBlockDurationEnabled] = useState(false);
   const [testEndsOnTimeout, setTestEndsOnTimeout] = useState(
-    assessmentData?.data?.timeout
+    assessmentData?.data?.timeout,
   );
   const [blockDurations, setBlockDurations] = useState({});
   const [questionCountEnabled, setQuestionCountEnabled] = useState(false);
   const [blockQuestionCounts, setBlockQuestionCounts] = useState({});
+  // Тайлангийн төлбөр: "Тайлан төлбөртэй эсэх" switch — идэвхтэй үед л
+  // үнэ (reportPrice) оруулах талбар харагдана. Switch-ийг унтраахад
+  // reportPrice шууд 0 болж paywall унтардаг (report-access.service.ts:
+  // enabled = reportPrice > 0).
+  const [reportPaidEnabled, setReportPaidEnabled] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Байгууллагад зориулсан тест (owner + status=ONLY)
+  const [organizations, setOrganizations] = useState([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchOrganizations = async () => {
+      setOrganizationsLoading(true);
+      try {
+        const response = await getUsers({ role: 30, limit: 500 });
+        if (!cancelled && response?.success) {
+          const list = Array.isArray(response.data?.data)
+            ? response.data.data
+            : Array.isArray(response.data)
+              ? response.data
+              : [];
+          setOrganizations(list);
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      } finally {
+        if (!cancelled) setOrganizationsLoading(false);
+      }
+    };
+
+    fetchOrganizations();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedOwnerId =
+    assessmentData?.data?.owner?.id ?? assessmentData?.data?.owner ?? null;
+  const isOrgOnly = assessmentData?.data?.status === ASSESSMENT_STATUS_ONLY;
+
+  const handleOwnerChange = (value) => {
+    handleFieldChange("owner", value);
+  };
+
+  const handleOrgOnlyToggle = (checked) => {
+    if (checked && !selectedOwnerId) {
+      messageApi.error("Эхлээд байгууллага сонгоно уу.");
+      return;
+    }
+    handleFieldChange(
+      "status",
+      checked ? ASSESSMENT_STATUS_ONLY : ASSESSMENT_STATUS_DEFAULT,
+    );
+  };
 
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (assessmentData?.category?.parent) {
@@ -305,6 +365,7 @@ const Settings = ({
         answerShuffle: assessmentData.data.answerShuffle,
         categoryShuffle: assessmentData.data.categoryShuffle,
       });
+      setReportPaidEnabled((assessmentData.data.reportPrice ?? 0) > 0);
     }
   }, [assessmentData, form]);
 
@@ -344,6 +405,13 @@ const Settings = ({
     }
   }, [blocks]);
 
+  const handleReportPaidToggle = (checked) => {
+    setReportPaidEnabled(checked);
+    if (!checked) {
+      handleFieldChange("reportPrice", 0);
+    }
+  };
+
   const handleBlockDurationToggle = (checked) => {
     setBlockDurationEnabled(checked);
 
@@ -352,7 +420,7 @@ const Settings = ({
         prevBlocks.map((block) => ({
           ...block,
           duration: 0,
-        }))
+        })),
       );
 
       const resetDurations = {};
@@ -375,8 +443,8 @@ const Settings = ({
 
     setBlocks((prevBlocks) =>
       prevBlocks.map((block) =>
-        block.id === blockId ? { ...block, duration } : block
-      )
+        block.id === blockId ? { ...block, duration } : block,
+      ),
     );
 
     setBlockDurations((prev) => ({
@@ -392,11 +460,11 @@ const Settings = ({
 
       const totalDuration = blocks.reduce(
         (sum, block) => sum + (updatedDurations[block.id] || 0),
-        0
+        0,
       );
 
       const updatedBlocks = blocks.map((block) =>
-        block.id === blockId ? { ...block, duration } : block
+        block.id === blockId ? { ...block, duration } : block,
       );
 
       handleFieldChange("duration", totalDuration, updatedBlocks);
@@ -441,8 +509,10 @@ const Settings = ({
 
     setBlocks((prevBlocks) =>
       prevBlocks.map((block) =>
-        block.id === blockId ? { ...block, questionCount, sliced: true } : block
-      )
+        block.id === blockId
+          ? { ...block, questionCount, sliced: true }
+          : block,
+      ),
     );
 
     setBlockQuestionCounts((prev) => ({
@@ -451,11 +521,11 @@ const Settings = ({
     }));
 
     const updatedBlocks = blocks.map((block) =>
-      block.id === blockId ? { ...block, questionCount, sliced: true } : block
+      block.id === blockId ? { ...block, questionCount, sliced: true } : block,
     );
     const totalCount = updatedBlocks.reduce(
       (total, block) => total + block.questionCount,
-      0
+      0,
     );
 
     handleFieldChange("questionCount", totalCount, updatedBlocks);
@@ -493,7 +563,7 @@ const Settings = ({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event) => {
@@ -507,7 +577,7 @@ const Settings = ({
         (block, index) => ({
           ...block,
           order: index + 1,
-        })
+        }),
       );
 
       setBlocks(newBlocks);
@@ -515,27 +585,25 @@ const Settings = ({
   };
 
   const renderGeneral = () => {
-    const handleChange = async (info) => {
-      if (info.file.status === "uploading") {
-        setLoading(true);
-        return;
-      }
+    const handleImageUpload = async ({ file, onSuccess, onError }) => {
+      setLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("files", file);
+        const res = await imageUploader(formData);
 
-      if (info.file.status === "done") {
-        try {
-          const formData = new FormData();
-          formData.append("files", info.file.originFileObj);
-          const res = await imageUploader(formData);
-
-          if (res && res[0]) {
-            setImageUrl(res[0]);
-            handleFieldChange("icons", res[0]);
-          }
-        } catch (error) {
-          messageApi.error("Зураг хуулахад алдаа гарлаа");
-        } finally {
-          setLoading(false);
+        if (res && res[0]) {
+          setImageUrl(res[0]);
+          handleFieldChange("icons", res[0]);
+          onSuccess(res[0], file);
+        } else {
+          throw new Error("Upload failed");
         }
+      } catch (error) {
+        messageApi.error("Зураг хуулахад алдаа гарлаа");
+        onError(error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -566,7 +634,7 @@ const Settings = ({
               suffixIcon={<DropdownIcon width={15} height={15} />}
               onChange={(value) => {
                 const selectedCate = assessmentCategories.find(
-                  (c) => c.id === value
+                  (c) => c.id === value,
                 );
                 setSelectedCategory({
                   id: selectedCate.id,
@@ -589,7 +657,7 @@ const Settings = ({
               }
               onChange={(value) => {
                 const selectedCate = availableSubCategories.find(
-                  (c) => c.id === value
+                  (c) => c.id === value,
                 );
                 setSelectedSubCategory({
                   id: selectedCate.id,
@@ -609,29 +677,7 @@ const Settings = ({
               accept="image/*"
               listType="picture"
               maxCount={1}
-              customRequest={async ({ file, onSuccess, onError }) => {
-                setLoading(true);
-                try {
-                  const formData = new FormData();
-                  formData.append("files", file);
-                  const res = await imageUploader(formData);
-
-                  if (res && res[0]) {
-                    setImageUrl(res[0]);
-                    handleFieldChange("icons", res[0]);
-                    onSuccess(res[0]);
-                  } else {
-                    onError(new Error("Upload failed"));
-                    messageApi.error("Зураг хуулахад алдаа гарлаа");
-                  }
-                } catch (error) {
-                  console.error("Upload error:", error);
-                  onError(error);
-                  messageApi.error("Зураг хуулахад алдаа гарлаа");
-                } finally {
-                  setLoading(false);
-                }
-              }}
+              customRequest={handleImageUpload}
               defaultFileList={
                 imageUrl
                   ? [
@@ -647,10 +693,9 @@ const Settings = ({
               onRemove={() => {
                 setImageUrl(null);
                 handleFieldChange("icons", null);
-                return true;
               }}
             >
-              {!imageUrl && (
+              {!assessmentData?.data?.icons && (
                 <Button icon={<PlusOutlined />} className="the-btn">
                   Зураг оруулах
                 </Button>
@@ -836,6 +881,93 @@ const Settings = ({
             onChange={(checked) => handleFieldChange("answerShuffle", checked)}
           />
           <span>Хариултууд холих</span>
+        </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">
+          Блок хоорондын шилжилт
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.blockNavigation ?? false}
+            onChange={(checked) =>
+              handleFieldChange("blockNavigation", checked)
+            }
+          />
+          <span>Шалгуулагч блокуудын хооронд чөлөөтэй шилжих боломжтой</span>
+        </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Дүн харуулах</div>
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.showResultOnComplete ?? false}
+            onChange={(checked) =>
+              handleFieldChange("showResultOnComplete", checked)
+            }
+          />
+          <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
+        </div>
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Тайлангийн төлбөр</div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={reportPaidEnabled}
+            onChange={handleReportPaidToggle}
+          />
+          <span>Тайлан төлбөртэй эсэх</span>
+        </div>
+
+        {reportPaidEnabled && (
+          <div className="pb-2">
+            <div className="px-1 pb-2">Тайлан нээх үнэ (₮)</div>
+            <InputNumber
+              min={0}
+              step={1000}
+              className="w-full max-w-[360px]"
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => `${value}`.replace(/,/g, "")}
+              value={assessmentData?.data.reportPrice ?? 0}
+              onChange={(value) => handleFieldChange("reportPrice", value ?? 0)}
+            />
+          </div>
+        )}
+
+        <Divider />
+        <div className="text-base font-bold mt-4 mb-4">
+          Байгууллагад зориулсан тест
+        </div>
+        <div className="pb-2">
+          <div className="px-1 pb-2">Байгууллага сонгох</div>
+          <Select
+            allowClear
+            showSearch
+            className="w-full max-w-[360px]"
+            loading={organizationsLoading}
+            placeholder="Байгууллага сонгох"
+            suffixIcon={<DropdownIcon width={15} height={15} />}
+            value={selectedOwnerId ?? undefined}
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            options={organizations.map((org) => ({
+              label: org.organizationName || org.firstname || org.email,
+              value: org.id,
+            }))}
+            onChange={(value) => handleOwnerChange(value ?? null)}
+          />
+        </div>
+        <div className="flex items-center gap-2 mb-2 mt-3">
+          <Switch
+            size="small"
+            checked={isOrgOnly}
+            onChange={handleOrgOnlyToggle}
+          />
+          <span>Зөвхөн энэ байгууллагад </span>
         </div>
       </div>
     </div>
