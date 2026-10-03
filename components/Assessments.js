@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
   ChartSquareLineDuotone,
@@ -78,8 +79,8 @@ import { MessageCircleMore } from "lucide-react";
 
 // "Хувилах" — core-ийн шинэ хуулбарлалт (бүх агуулга, нэг transaction, "Архив" төлөвтэй).
 const SHOW_DUPLICATE_ACTION = true;
-// Тест устгах товчийг түр нуусан. Буцааж харуулах бол true болгоно.
-const SHOW_DELETE_ACTION = false;
+// "Устгах" — зөвхөн super admin (role 10)-д харагдана (core ч мөн зөвхөн super admin-ыг зөвшөөрнө).
+const SUPER_ADMIN_ROLE = 10;
 
 const BUNDLE_FORMAT = "hire-assessment-bundle";
 const EMPTY_IMPORT = { open: false, preview: null, text: null, loading: false };
@@ -318,6 +319,8 @@ export default function TestsPageClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ open: false, record: null });
   const [importState, setImportState] = useState(EMPTY_IMPORT);
+  const { data: session } = useSession();
+  const isSuperAdmin = session?.user?.role === SUPER_ADMIN_ROLE;
   const importInputRef = useRef(null);
   const [featuredLimitModal, setFeaturedLimitModal] = useState({ open: false });
   const [featuredCount, setFeaturedCount] = useState(
@@ -1156,7 +1159,7 @@ export default function TestsPageClient({
                                 JSON татах
                               </DropdownMenuItem>
 
-                              {SHOW_DELETE_ACTION && (
+                              {isSuperAdmin && (
                                 <>
                                   <DropdownMenuSeparator />
 
