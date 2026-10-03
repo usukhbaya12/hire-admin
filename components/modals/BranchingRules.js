@@ -171,8 +171,10 @@ const BranchingRules = ({ visible, onClose, questions }) => {
     return Array.from(map.values());
   };
 
-  const loadRules = async () => {
-    setLoading(true);
+  // keepCards: хадгалалт амжилтгүй болсон үед серверийн одоогийн мөрүүдийг (зөрүү бодоход)
+  // л шинэчилж, хэрэглэгчийн ноорог картуудыг арилгахгүй — дахин "Хадгалах" дарж болно.
+  const loadRules = async ({ keepCards = false } = {}) => {
+    if (!keepCards) setLoading(true);
     try {
       const res = await getQuestionRules();
       const filtered =
@@ -182,13 +184,15 @@ const BranchingRules = ({ visible, onClose, questions }) => {
             )
           : [];
       setRules(filtered);
-      setRuleCards(buildCardsFromRules(filtered));
+      if (!keepCards) setRuleCards(buildCardsFromRules(filtered));
     } catch {
       messageApi.error("Дүрэм татахад алдаа гарлаа.");
-      setRules([]);
-      setRuleCards([]);
+      if (!keepCards) {
+        setRules([]);
+        setRuleCards([]);
+      }
     } finally {
-      setLoading(false);
+      if (!keepCards) setLoading(false);
     }
   };
 
@@ -396,8 +400,12 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       } else {
         messageApi.success("Дүрэм хадгалагдлаа.");
       }
-      await loadRules();
-      if (!failed.length) onClose?.();
+      if (failed.length) {
+        await loadRules({ keepCards: true });
+      } else {
+        await loadRules();
+        onClose?.();
+      }
     } catch {
       messageApi.error("Сервертэй холбогдоход алдаа гарлаа.");
     } finally {
