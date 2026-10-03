@@ -456,7 +456,7 @@ export default function TestsPageClient({
       if (categoriesRes?.success) {
         setCategories(categoriesRes.data || []);
       } else {
-        toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
+        toast.error(categoriesRes?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
       }
     } catch (error) {
       console.error(error);
