@@ -24,6 +24,8 @@ import {
   ChatRoundLineDuotone,
   Dialog2LineDuotone,
   CopyBoldDuotone,
+  DownloadMinimalisticLineDuotone,
+  UploadMinimalisticLineDuotone,
 } from "solar-icons";
 import {
   getAssessmentsNew,
@@ -70,11 +72,17 @@ import {
 import NewAssessment from "./modals/New";
 import InfoModal from "./modals/Info";
 import OkModal from "./modals/Ok";
+import ImportAssessmentModal from "./modals/ImportAssessment";
 import { CommentOutlined } from "@ant-design/icons";
 import { MessageCircleMore } from "lucide-react";
 
-// Тестийг хувилах / устгах товчийг түр нуусан. Буцааж харуулах бол true болгоно.
-const SHOW_DUPLICATE_DELETE_ACTIONS = false;
+// "Хувилах" — core-ийн шинэ хуулбарлалт (бүх агуулга, нэг transaction, "Архив" төлөвтэй).
+const SHOW_DUPLICATE_ACTION = true;
+// Тест устгах товчийг түр нуусан. Буцааж харуулах бол true болгоно.
+const SHOW_DELETE_ACTION = false;
+
+const BUNDLE_FORMAT = "hire-assessment-bundle";
+const EMPTY_IMPORT = { open: false, preview: null, text: null, loading: false };
 
 const ASSESSMENT_TYPE = {
   TEST: 10,
@@ -309,6 +317,8 @@ export default function TestsPageClient({
   const [categories, setCategories] = useState(initialCategories);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ open: false, record: null });
+  const [importState, setImportState] = useState(EMPTY_IMPORT);
+  const importInputRef = useRef(null);
   const [featuredLimitModal, setFeaturedLimitModal] = useState({ open: false });
   const [featuredCount, setFeaturedCount] = useState(
     initialData?.meta?.featured ?? 0,
@@ -446,7 +456,7 @@ export default function TestsPageClient({
       if (categoriesRes?.success) {
         setCategories(categoriesRes.data || []);
       } else {
-        toast.error(error?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
+        toast.error(categoriesRes?.message || "Мэдээлэл дуудах үед алдаа гарлаа.");
       }
     } catch (error) {
       console.error(error);
@@ -589,7 +599,7 @@ export default function TestsPageClient({
 
         if (response?.success && newId) {
           toast.success(
-            `"${item.name}"-г хуулж, шинэ тест үүсгэлээ.`,
+            `"${item.name}"-г хуулж, "Архив" төлөвтэй шинэ тест үүсгэлээ.`,
           );
           await fetchData({ page: 1 });
           router.push(`/test/${newId}`);
@@ -608,6 +618,109 @@ export default function TestsPageClient({
     },
     [fetchData, router, toast],
   );
+
+  // "JSON татах" — тестийг бүх агуулга, зурагтай нь нэг файл болгож татна
+  // (өөр орчны admin-д "JSON-оос оруулах"-аар оруулна).
+  const handleExport = useCallback(async (item) => {
+    if (!item?.id) return;
+    const toastId = toast.loading(`"${item.name}"-г JSON файл болгож байна…`);
+    try {
+      const res = await fetch(`/api/assessment-transfer/${item.id}/export`);
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error(j?.message || "Тест татахад алдаа гарлаа.");
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const m = cd.match(/filename\*=UTF-8''([^;]+)/);
+      const filename = m ? decodeURIComponent(m[1]) : `hire-test-${item.id}.json`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      toast.success(
+        `JSON файл татагдлаа. Өөр орчны admin-д "JSON-оос оруулах"-аар оруулна.`,
+        { id: toastId },
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message || "Тест татахад алдаа гарлаа.", { id: toastId });
+    }
+  }, []);
+
+  // "JSON-оос оруулах" — файлыг уншиж товчоог харуулна (баталгаажуулсны дараа оруулна).
+  const handleImportFile = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const b = JSON.parse(text);
+      if (b?.format !== BUNDLE_FORMAT) {
+        throw new Error("Энэ файл Hire-ийн тестийн экспорт (JSON татах) биш байна.");
+      }
+      const len = (k) => (Array.isArray(b[k]) ? b[k].length : 0);
+      setImportState({
+        open: true,
+        loading: false,
+        text,
+        preview: {
+          name: b.assessment?.fields?.name,
+          sourceId: b.source?.assessmentId,
+          exportedAt: b.exportedAt,
+          size: file.size,
+          fileCount: len("files"),
+          missingFiles: len("missingFiles"),
+          counts: {
+            questionCategories: len("questionCategories"),
+            questions: len("questions"),
+            answers: len("answers"),
+            answerCategories: len("answerCategories"),
+            formulas: len("assessmentFormulas") + (b.assessment?.formule ? 1 : 0),
+            rules: len("rules"),
+            pdfTemplates: len("pdfTemplates"),
+            variables: len("variables"),
+          },
+        },
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof SyntaxError
+          ? "JSON файл уншигдсангүй."
+          : error?.message || "Файл уншихад алдаа гарлаа.",
+      );
+    }
+  }, []);
+
+  const handleImport = useCallback(async () => {
+    if (!importState.text) return;
+    setImportState((s) => ({ ...s, loading: true }));
+    try {
+      const res = await fetch("/api/assessment-transfer/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: importState.text,
+      });
+      const json = await res.json().catch(() => null);
+      if (!json?.success || !json?.data?.id) {
+        throw new Error(json?.message || "Тест оруулахад алдаа гарлаа.");
+      }
+      const { id, name, warnings = [] } = json.data;
+      setImportState(EMPTY_IMPORT);
+      toast.success(`"${name}" тест "Архив" төлөвтэй үүслээ.`);
+      for (const w of warnings) toast.warning(w, { duration: 15000 });
+      await fetchData({ page: 1 });
+      router.push(`/test/${id}`);
+    } catch (error) {
+      console.error(error);
+      setImportState((s) => ({ ...s, loading: false }));
+      toast.error(error?.message || "Тест оруулахад алдаа гарлаа.");
+    }
+  }, [importState.text, fetchData, router]);
 
   const handleDeleteClick = useCallback((item) => {
     setDeleteModal({ open: true, record: item });
@@ -698,6 +811,14 @@ export default function TestsPageClient({
         title="Тест устгах"
       />
 
+      <ImportAssessmentModal
+        open={importState.open}
+        preview={importState.preview}
+        loading={importState.loading}
+        onOk={handleImport}
+        onCancel={() => setImportState(EMPTY_IMPORT)}
+      />
+
       <OkModal
         open={featuredLimitModal.open}
         onOk={() => setFeaturedLimitModal({ open: false })}
@@ -731,6 +852,21 @@ export default function TestsPageClient({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={handleImportFile}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => importInputRef.current?.click()}
+                    title="Өөр орчноос (жиш: test) татсан JSON файлаар шинэ тест үүсгэх"
+                  >
+                    <UploadMinimalisticLineDuotone width={22} height={22} />
+                    JSON-оос оруулах
+                  </Button>
                   <Button onClick={() => setIsModalOpen(true)}>
                     <DocumentAddLineDuotone width={24} height={24} />
                     Тест үүсгэх
@@ -1004,15 +1140,24 @@ export default function TestsPageClient({
                                 Урьдчилж харах
                               </DropdownMenuItem>
 
-                              {SHOW_DUPLICATE_DELETE_ACTIONS && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDuplicate(item)}
-                                  >
-                                    <CopyBoldDuotone width={18} />
-                                    Хувилах
-                                  </DropdownMenuItem>
+                              {SHOW_DUPLICATE_ACTION && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDuplicate(item)}
+                                >
+                                  <CopyBoldDuotone width={18} />
+                                  Хувилах
+                                </DropdownMenuItem>
+                              )}
 
+                              <DropdownMenuItem
+                                onClick={() => handleExport(item)}
+                              >
+                                <DownloadMinimalisticLineDuotone width={18} />
+                                JSON татах
+                              </DropdownMenuItem>
+
+                              {SHOW_DELETE_ACTION && (
+                                <>
                                   <DropdownMenuSeparator />
 
                                   <DropdownMenuItem

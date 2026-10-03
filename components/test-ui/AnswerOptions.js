@@ -286,6 +286,7 @@ const AnswerOptions = ({
               onChange={handleCorrectAnswerChange}
             />
             <AnswerContent
+              assessmentData={assessmentData}
               option={option}
               index={index}
               editingOptionIndex={editingOptionIndex}
@@ -311,6 +312,7 @@ const AnswerOptions = ({
         <div key={index} className="flex items-center gap-2 group">
           <div className="flex-1">
             <AnswerContent
+              assessmentData={assessmentData}
               option={option}
               index={index}
               editingOptionIndex={editingOptionIndex}
@@ -425,6 +427,7 @@ const AnswerOptions = ({
           <div key={index} className="flex items-center gap-2 group">
             <div className="flex-1">
               <AnswerContent
+                assessmentData={assessmentData}
                 option={option}
                 index={index}
                 editingOptionIndex={editingOptionIndex}
@@ -486,6 +489,7 @@ const AnswerOptions = ({
           <div key={index} className="flex items-center gap-2 group">
             <div className="flex-1">
               <AnswerContent
+                assessmentData={assessmentData}
                 option={option}
                 index={index}
                 editingOptionIndex={editingOptionIndex}
@@ -529,6 +533,7 @@ const AnswerOptions = ({
           <div key={index} className="flex items-center gap-2 group">
             <div className="flex-1">
               <AnswerContent
+                assessmentData={assessmentData}
                 option={option}
                 index={index}
                 editingOptionIndex={editingOptionIndex}
@@ -617,6 +622,10 @@ const AnswerContent = ({
   isConstantSum = false,
   question,
   customControl,
+  // Хариултын ангиллын нэрийг (answerCategoryLabel) харуулахад хэрэгтэй — өмнө нь
+  // prop-оор дамжаагүй тул ангилалтай хариулт бүхий тест нээхэд
+  // "assessmentData is not defined" алдаагаар хуудас бүхэлдээ унадаг байв.
+  assessmentData,
 }) => {
   return (
     <div className="flex-1">
