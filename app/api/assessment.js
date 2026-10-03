@@ -628,6 +628,8 @@ export const createQuestionRule = async (values) => {
       dependsOnAnswerId: values.dependsOnAnswerId ?? null,
       // MATRIX нөхцөл: мөрийн нүд (багана)
       dependsOnMatrixId: values.dependsOnMatrixId ?? null,
+      // MATRIX алгасах асуултын зөвхөн энэ мөрийг хасна (null = бүтэн асуулт)
+      targetAnswerId: values.targetAnswerId ?? null,
       action: values.action ?? "skip",
     };
     const res = await fetch(`${api}question/rule`, {
