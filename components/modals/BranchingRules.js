@@ -22,12 +22,16 @@ import {
 } from "@/app/api/assessment";
 import { QUESTION_TYPES } from "@/utils/values";
 
-// Нөхцөл болгож болох асуултын төрөл: зөвхөн нэг / олон сонголттой (SINGLE / MULTIPLE).
-// Бусад төрөл (MATRIX, SLIDER, TEXT, TRUE_FALSE …) answer id-тай биш тул шалгуулагчийн
-// хуудас (client) ба сервер (`userAnswer.answerId`) хоёр зөрж, дүрэм зөв ажиллахгүй.
-// Сервер (`QuestionRuleService`) мөн адил шалгана.
-const CONDITION_TYPES = [QUESTION_TYPES.SINGLE, QUESTION_TYPES.MULTIPLE];
+// Нөхцөл болгож болох асуултын төрөл: нэг / олон сонголттой (SINGLE / MULTIPLE) ба
+// матриц (MATRIX — мөр + багана, жиш: "Тамхи" мөрөнд "Үгүй"). Бусад төрөл (SLIDER, TEXT,
+// TRUE_FALSE …) answer id-аар жиших боломжгүй. Сервер (`QuestionRuleService`) мөн адил шалгана.
+const CONDITION_TYPES = [
+  QUESTION_TYPES.SINGLE,
+  QUESTION_TYPES.MULTIPLE,
+  QUESTION_TYPES.MATRIX,
+];
 const isConditionType = (type) => CONDITION_TYPES.includes(Number(type));
+const isMatrixType = (type) => Number(type) === QUESTION_TYPES.MATRIX;
 
 // HTML таг агуулсан асуултын нэрийг цэвэр текст болгоно.
 const stripHtml = (s) =>
@@ -66,6 +70,11 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         answers: (q.answers || []).map((a) => ({
           id: a.id,
           value: stripHtml(a.value) || `Хариулт #${a.id}`,
+          // MATRIX: тухайн мөрийн нүднүүд (багана бүрд нэг нүд, өөрийн id-тай)
+          matrix: (a.matrix || []).map((m) => ({
+            id: m.id,
+            value: stripHtml(m.value) || `Багана #${m.id}`,
+          })),
         })),
       }))
     );
@@ -134,12 +143,13 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   const buildCardsFromRules = (flatRules) => {
     const map = new Map();
     flatRules.forEach((r) => {
-      const key = `${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}`;
+      const key = `${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}|${r.dependsOnMatrixId ?? ""}`;
       if (!map.has(key)) {
         map.set(key, {
           key: newCardKey(),
           dependsOnQuestionId: r.dependsOnQuestionId ?? null,
           dependsOnAnswerId: r.dependsOnAnswerId ?? null,
+          dependsOnMatrixId: r.dependsOnMatrixId ?? null,
           targetQuestionIds: [],
         });
       }
@@ -185,6 +195,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         key: newCardKey(),
         dependsOnQuestionId: null,
         dependsOnAnswerId: null,
+        dependsOnMatrixId: null,
         targetQuestionIds: [],
       },
     ]);
@@ -203,6 +214,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
               ...c,
               dependsOnQuestionId: questionId,
               dependsOnAnswerId: null,
+              dependsOnMatrixId: null,
               // шинээр сонгосон нөхцөл асуулт нь өөрөө алгасах жагсаалтад
               // байвал давхардлыг арилгана; мөн нөхцөл асуултаас ӨМНӨХ блокт
               // байгаа алгасах асуултуудыг хасна (сервер зөвшөөрөхгүй).
@@ -224,7 +236,18 @@ const BranchingRules = ({ visible, onClose, questions }) => {
 
   const setCardDependsAnswer = (key, answerId) => {
     setRuleCards((prev) =>
-      prev.map((c) => (c.key === key ? { ...c, dependsOnAnswerId: answerId } : c))
+      prev.map((c) =>
+        c.key === key
+          ? { ...c, dependsOnAnswerId: answerId ?? null, dependsOnMatrixId: null }
+          : c
+      )
+    );
+  };
+
+  // MATRIX: сонгосон мөрийн аль нүд (багана) — жиш: "Үгүй".
+  const setCardDependsMatrix = (key, matrixId) => {
+    setRuleCards((prev) =>
+      prev.map((c) => (c.key === key ? { ...c, dependsOnMatrixId: matrixId ?? null } : c))
     );
   };
 
@@ -276,12 +299,14 @@ const BranchingRules = ({ visible, onClose, questions }) => {
           targetQuestionId: Number(targetId),
           dependsOnQuestionId: Number(c.dependsOnQuestionId),
           dependsOnAnswerId: c.dependsOnAnswerId ? Number(c.dependsOnAnswerId) : null,
+          dependsOnMatrixId:
+            c.dependsOnAnswerId && c.dependsOnMatrixId ? Number(c.dependsOnMatrixId) : null,
         });
       });
     });
 
     const rowKey = (r) =>
-      `${r.targetQuestionId}|${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}`;
+      `${r.targetQuestionId}|${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}|${r.dependsOnMatrixId ?? ""}`;
     const desiredKeys = new Set(desired.map(rowKey));
     const currentByKey = new Map(
       rules.map((r) => [
@@ -289,6 +314,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
           targetQuestionId: Number(r.targetQuestionId),
           dependsOnQuestionId: Number(r.dependsOnQuestionId),
           dependsOnAnswerId: r.dependsOnAnswerId ?? null,
+          dependsOnMatrixId: r.dependsOnMatrixId ?? null,
         }),
         r.id,
       ])
@@ -353,8 +379,9 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       {contextHolder}
       <div className="text-sm text-gray-500 mb-3">
         Тодорхой хариулт өгсөн үед дараах асуултуудыг алгасахаар тохируулна.
-        Нөхцөл болгох асуулт нь нэг / олон сонголттой байх ба алгасах асуулт нь
-        нөхцөл асуулттай ижил эсвэл түүнээс хойших блокт байна.
+        Нөхцөл болгох асуулт нь нэг / олон сонголттой эсвэл матриц (мөр + багана,
+        жиш: "Тамхи" мөрөнд "Үгүй") байх ба алгасах асуулт нь нөхцөл асуулттай ижил
+        эсвэл түүнээс хойших блокт байна.
       </div>
 
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-4">
@@ -382,6 +409,16 @@ const BranchingRules = ({ visible, onClose, questions }) => {
             const answerOptions = (dependsQuestion?.answers || []).map((a) => ({
               value: a.id,
               label: a.value,
+            }));
+            const matrixCondition = isMatrixType(dependsQuestion?.type);
+            const selectedRow = matrixCondition
+              ? (dependsQuestion?.answers || []).find(
+                  (a) => Number(a.id) === Number(card.dependsOnAnswerId)
+                )
+              : null;
+            const cellOptions = (selectedRow?.matrix || []).map((m) => ({
+              value: m.id,
+              label: m.value,
             }));
             const excludeIds = new Set([
               Number(card.dependsOnQuestionId),
@@ -452,9 +489,11 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                   <Select
                     allowClear
                     placeholder={
-                      card.dependsOnQuestionId
-                        ? "Хариулт (заавал биш)"
-                        : "Эхлээд асуулт сонгоно уу"
+                      !card.dependsOnQuestionId
+                        ? "Эхлээд асуулт сонгоно уу"
+                        : matrixCondition
+                          ? "Мөр (заавал биш) — жиш: Тамхи"
+                          : "Хариулт (заавал биш)"
                     }
                     className="w-full"
                     value={card.dependsOnAnswerId || undefined}
@@ -462,6 +501,26 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                     disabled={!card.dependsOnQuestionId}
                     options={answerOptions}
                   />
+                  {matrixCondition && (
+                    <Select
+                      allowClear
+                      placeholder={
+                        card.dependsOnAnswerId
+                          ? "Багана (заавал биш) — жиш: Үгүй"
+                          : "Эхлээд мөр сонгоно уу"
+                      }
+                      className="w-full"
+                      value={card.dependsOnMatrixId || undefined}
+                      onChange={(v) => setCardDependsMatrix(card.key, v)}
+                      disabled={!card.dependsOnAnswerId}
+                      options={cellOptions}
+                    />
+                  )}
+                  {matrixCondition && card.dependsOnAnswerId && !card.dependsOnMatrixId && (
+                    <div className="text-xs text-gray-400">
+                      Багана сонгоогүй бол энэ мөрөнд ямар нэг хариулт өгөхөд алгасна.
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-center py-2 text-gray-300">

@@ -626,6 +626,8 @@ export const createQuestionRule = async (values) => {
       targetQuestionId: values.targetQuestionId,
       dependsOnQuestionId: values.dependsOnQuestionId,
       dependsOnAnswerId: values.dependsOnAnswerId ?? null,
+      // MATRIX нөхцөл: мөрийн нүд (багана)
+      dependsOnMatrixId: values.dependsOnMatrixId ?? null,
       action: values.action ?? "skip",
     };
     const res = await fetch(`${api}question/rule`, {
