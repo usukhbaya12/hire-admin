@@ -6,6 +6,7 @@ import {
   message,
   Empty,
   Spin,
+  Segmented,
 } from "antd";
 import {
   LoadingOutlined,
@@ -37,6 +38,9 @@ const isMatrixType = (type) => Number(type) === QUESTION_TYPES.MATRIX;
 const stripHtml = (s) =>
   typeof s === "string" ? s.replace(/<[^>]*>/g, "").trim() : "";
 
+// Мөр / баганыг НЭРЭЭР нь тааруулахад (жиш: 3, 4, 5-р матриц бүгд "Тамхи … Опиоид" мөртэй).
+const normText = (s) => stripHtml(s).replace(/\s+/g, " ").toLowerCase();
+
 let cardKeySeq = 0;
 const newCardKey = () => `card-${Date.now()}-${cardKeySeq++}`;
 
@@ -59,8 +63,14 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   // блокод хамаарахыг мартахгүй хадгална.
   const flatQuestions = useMemo(() => {
     if (!Array.isArray(questions)) return [];
-    return questions.flatMap((block) =>
-      (block.questions || []).map((q) => ({
+    // pos — тестийн дараалал дахь байрлал ("дараагийн асуултууд"-ыг олоход).
+    let pos = 0;
+    const byOrder = (a, b) => (Number(a ?? 0) || 0) - (Number(b ?? 0) || 0);
+    return [...questions]
+      .sort((a, b) => byOrder(a.category?.orderNumber, b.category?.orderNumber))
+      .flatMap((block) =>
+      [...(block.questions || [])].sort((a, b) => byOrder(a.orderNumber, b.orderNumber)).map((q) => ({
+        pos: pos++,
         id: q.id,
         name: stripHtml(q.name) || `Асуулт #${q.id}`,
         type: q.type,
@@ -91,6 +101,59 @@ const BranchingRules = ({ visible, onClose, questions }) => {
     [flatQuestions]
   );
 
+  // MATRIX асуултын баганууд (нэрээр давхардалгүй) — "Мөр бүрээр" горимын багана сонголт.
+  const columnsOf = (q) => {
+    const seen = new Map();
+    (q?.answers || []).forEach((a) =>
+      (a.matrix || []).forEach((m) => {
+        const k = normText(m.value);
+        if (k && !seen.has(k)) seen.set(k, m.value);
+      })
+    );
+    return [...seen].map(([value, label]) => ({ value, label }));
+  };
+  const rowByName = (q, name) =>
+    (q?.answers || []).find((a) => normText(a.value) === normText(name)) || null;
+
+  // Нөхцөл асуултаас ХОЙШХИ (тестийн дарааллаар), нөхцөлтэй ижил нэртэй мөртэй MATRIX асуултууд.
+  const laterMatrixQuestions = (cond, excludeIds) =>
+    flatQuestions.filter(
+      (q) =>
+        isMatrixType(q.type) &&
+        cond &&
+        q.pos > cond.pos &&
+        Number(q.id) !== Number(cond.id) &&
+        !excludeIds?.has(Number(q.id))
+    );
+
+  // "Мөр бүрээр" карт → бодит дүрмүүд: нөхцөл матрицын мөр бүрд (тэр мөрөнд сонгосон
+  // багана) алгасах асуулт бүрийн ИЖИЛ НЭРТЭЙ мөрийг хасна. Таарах мөргүй бол алгасна.
+  const expandRowsCard = (c) => {
+    const cond = questionById.get(Number(c.dependsOnQuestionId));
+    if (!cond || !c.columnKey) return [];
+    const onlyRows = new Set((c.rowIds || []).map(Number));
+    const out = [];
+    for (const row of cond.answers || []) {
+      if (onlyRows.size && !onlyRows.has(Number(row.id))) continue;
+      const cell = (row.matrix || []).find((m) => normText(m.value) === c.columnKey);
+      if (!cell) continue;
+      for (const tid of c.targetQuestionIds) {
+        const tRow = rowByName(questionById.get(Number(tid)), row.value);
+        if (!tRow) continue;
+        out.push({
+          targetQuestionId: Number(tid),
+          dependsOnQuestionId: Number(cond.id),
+          dependsOnAnswerId: Number(row.id),
+          dependsOnMatrixId: Number(cell.id),
+          targetAnswerId: Number(tRow.id),
+        });
+      }
+    }
+    return out;
+  };
+  const ruleKey = (r) =>
+    `${r.targetQuestionId}|${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}|${r.dependsOnMatrixId ?? ""}|${r.targetAnswerId ?? ""}`;
+
   // Select-үүдийн сонголтыг блокоор бүлэглэнэ (optgroup); excludeIds-д
   // орсон асуултуудыг сонголтоос хасна (жишээ нь: тухайн картын нөхцөл
   // асуулт болон аль хэдийн нэмэгдсэн алгасах асуултуудыг давхардуулахгүй).
@@ -99,7 +162,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   //   асуулт нь нөхцөл асуултаас ӨМНӨХ блокт байж болохгүй: хэсгүүд дараалалтай нээгдэнэ).
   const buildGroupedOptions = (
     excludeIds,
-    { onlyConditionTypes = false, minBlockOrder = null } = {}
+    { onlyConditionTypes = false, minBlockOrder = null, onlyMatrix = false } = {}
   ) => {
     if (!Array.isArray(questions)) return [];
     return questions
@@ -115,6 +178,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         options: (block.questions || [])
           .filter((q) => !excludeIds || !excludeIds.has(Number(q.id)))
           .filter((q) => !onlyConditionTypes || isConditionType(q.type))
+          .filter((q) => !onlyMatrix || isMatrixType(q.type))
           .map((q) => ({
             value: q.id,
             label: stripHtml(q.name) || `Асуулт #${q.id}`,
@@ -143,7 +207,51 @@ const BranchingRules = ({ visible, onClose, questions }) => {
   // targetRows: { [асуулт]: [мөр, …] } — MATRIX алгасах асуултын зөвхөн эдгээр мөрийг
   // хасна (targetAnswerId). Хоосон / байхгүй = асуултыг бүхэлд нь алгасна. Нэг асуултад
   // бүтэн болон мөрийн дүрэм зэрэг байвал бүтэн нь давамгайлна.
-  const buildCardsFromRules = (flatRules) => {
+  const buildCardsFromRules = (allRules) => {
+    // (а) "Мөр бүрээр" — нөхцөл мөр ба хасах мөр ИЖИЛ НЭРТЭЙ, нэг баганатай дүрмүүдийг
+    // бүлэглээд, яг бүтэн "мөр × асуулт" багц (expandRowsCard-тай тэнцүү) бол нэг карт болгоно.
+    const rowsGroups = new Map();
+    allRules.forEach((r) => {
+      if (r.dependsOnMatrixId == null || r.targetAnswerId == null || r.dependsOnAnswerId == null) return;
+      const cond = questionById.get(Number(r.dependsOnQuestionId));
+      const row = (cond?.answers || []).find((a) => Number(a.id) === Number(r.dependsOnAnswerId));
+      const cell = (row?.matrix || []).find((m) => Number(m.id) === Number(r.dependsOnMatrixId));
+      const tRow = (questionById.get(Number(r.targetQuestionId))?.answers || []).find(
+        (a) => Number(a.id) === Number(r.targetAnswerId)
+      );
+      if (!row || !cell || !tRow || normText(row.value) !== normText(tRow.value)) return;
+      const k = `${r.dependsOnQuestionId}|${normText(cell.value)}`;
+      if (!rowsGroups.has(k)) rowsGroups.set(k, { cond, columnKey: normText(cell.value), rows: new Set(), targets: [], list: [] });
+      const g = rowsGroups.get(k);
+      g.rows.add(Number(row.id));
+      if (!g.targets.includes(Number(r.targetQuestionId))) g.targets.push(Number(r.targetQuestionId));
+      g.list.push(r);
+    });
+    const rowsCards = [];
+    const consumed = new Set();
+    rowsGroups.forEach((g) => {
+      if (g.rows.size < 2) return;
+      const allRows = (g.cond.answers || []).length === g.rows.size;
+      const card = {
+        key: newCardKey(),
+        mode: "rows",
+        dependsOnQuestionId: g.cond.id,
+        dependsOnAnswerId: null,
+        dependsOnMatrixId: null,
+        columnKey: g.columnKey,
+        rowIds: allRows ? [] : [...g.rows],
+        targetQuestionIds: g.targets,
+        targetRows: {},
+      };
+      const expected = new Set(expandRowsCard(card).map(ruleKey));
+      const actual = new Set(g.list.map((r) => ruleKey({ ...r, targetQuestionId: Number(r.targetQuestionId), dependsOnQuestionId: Number(r.dependsOnQuestionId), dependsOnAnswerId: Number(r.dependsOnAnswerId), dependsOnMatrixId: Number(r.dependsOnMatrixId), targetAnswerId: Number(r.targetAnswerId) })));
+      if (expected.size !== actual.size || [...expected].some((k) => !actual.has(k))) return;
+      g.list.forEach((r) => consumed.add(r));
+      rowsCards.push(card);
+    });
+    const flatRules = allRules.filter((r) => !consumed.has(r));
+
+    // (б) Энгийн карт: ижил нөхцөл (асуулт + хариулт / мөр + нүд).
     const map = new Map();
     const whole = new Map(); // card key → бүтэн алгасах асуултууд
     flatRules.forEach((r) => {
@@ -154,6 +262,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
           dependsOnQuestionId: r.dependsOnQuestionId ?? null,
           dependsOnAnswerId: r.dependsOnAnswerId ?? null,
           dependsOnMatrixId: r.dependsOnMatrixId ?? null,
+          mode: "single",
           targetQuestionIds: [],
           targetRows: {},
         });
@@ -168,7 +277,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
     map.forEach((card, key) => {
       whole.get(key).forEach((tid) => delete card.targetRows[tid]);
     });
-    return Array.from(map.values());
+    return [...rowsCards, ...Array.from(map.values())];
   };
 
   // keepCards: хадгалалт амжилтгүй болсон үед серверийн одоогийн мөрүүдийг (зөрүү бодоход)
@@ -213,6 +322,9 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         dependsOnQuestionId: null,
         dependsOnAnswerId: null,
         dependsOnMatrixId: null,
+        mode: "single",
+        columnKey: null,
+        rowIds: [],
         targetQuestionIds: [],
         targetRows: {},
       },
@@ -233,6 +345,10 @@ const BranchingRules = ({ visible, onClose, questions }) => {
               dependsOnQuestionId: questionId,
               dependsOnAnswerId: null,
               dependsOnMatrixId: null,
+              // MATRIX биш асуулт бол "Мөр бүрээр" горим утгагүй.
+              mode: isMatrixType(questionById.get(Number(questionId))?.type) ? c.mode || "single" : "single",
+              columnKey: null,
+              rowIds: [],
               // шинээр сонгосон нөхцөл асуулт нь өөрөө алгасах жагсаалтад
               // байвал давхардлыг арилгана; мөн нөхцөл асуултаас ӨМНӨХ блокт
               // байгаа алгасах асуултуудыг хасна (сервер зөвшөөрөхгүй).
@@ -269,17 +385,93 @@ const BranchingRules = ({ visible, onClose, questions }) => {
     );
   };
 
+  // Нөхцөл нь MATRIX-ийн мөр ("Тамхи") бол нэмж буй MATRIX асуултын ИЖИЛ НЭРТЭЙ мөрийг
+  // автоматаар сонгоно (ихэнхдээ яг үүнийг хүсдэг — дараа нь бүтэн асуулт болгож болно).
+  const withSameNameRow = (c, tid, targetRows) => {
+    if ((c.mode || "single") !== "single" || !c.dependsOnAnswerId) return targetRows;
+    const cond = questionById.get(Number(c.dependsOnQuestionId));
+    const t = questionById.get(Number(tid));
+    if (!isMatrixType(cond?.type) || !isMatrixType(t?.type)) return targetRows;
+    const row = (cond.answers || []).find((a) => Number(a.id) === Number(c.dependsOnAnswerId));
+    const tRow = row ? rowByName(t, row.value) : null;
+    return tRow ? { ...targetRows, [Number(tid)]: [Number(tRow.id)] } : targetRows;
+  };
+
   const addTargetQuestion = (key, questionId) => {
     if (!questionId) return;
     setRuleCards((prev) =>
       prev.map((c) =>
         c.key === key && !c.targetQuestionIds.includes(Number(questionId))
-          ? { ...c, targetQuestionIds: [...c.targetQuestionIds, Number(questionId)] }
+          ? {
+              ...c,
+              targetQuestionIds: [...c.targetQuestionIds, Number(questionId)],
+              targetRows: withSameNameRow(c, questionId, c.targetRows || {}),
+            }
           : c
       )
     );
     setAddingTargetFor(null);
   };
+
+  // Нөхцөл асуултаас хойшхи, тохирох (ижил нэртэй) мөртэй, хараахан нэмээгүй MATRIX асуултууд.
+  //   "Мөр бүрээр" — нөхцөлийн аль нэг мөртэй таарвал; "Нэг мөр" — сонгосон мөртэй таарвал.
+  const bulkCandidates = (c) => {
+    const cond = questionById.get(Number(c.dependsOnQuestionId));
+    if (!isMatrixType(cond?.type)) return [];
+    const cands = laterMatrixQuestions(cond, new Set(c.targetQuestionIds.map(Number)));
+    if ((c.mode || "single") === "rows") {
+      return cands.filter((q) => (cond.answers || []).some((r) => rowByName(q, r.value)));
+    }
+    const row = (cond.answers || []).find((a) => Number(a.id) === Number(c.dependsOnAnswerId));
+    return row ? cands.filter((q) => rowByName(q, row.value)) : [];
+  };
+
+  // ... тэдгээрийг нэг дор нэмнэ (нэг бүрчлэн нэмэх шаардлагагүй).
+  const addAllTargets = (key) => {
+    setRuleCards((prev) =>
+      prev.map((c) => {
+        if (c.key !== key) return c;
+        const cands = bulkCandidates(c);
+        let targetRows = c.targetRows || {};
+        cands.forEach((q) => {
+          targetRows = withSameNameRow(c, q.id, targetRows);
+        });
+        return {
+          ...c,
+          targetQuestionIds: [...c.targetQuestionIds, ...cands.map((q) => Number(q.id))],
+          targetRows,
+        };
+      })
+    );
+  };
+
+  // "Нэг мөр" ↔ "Мөр бүрээр" (MATRIX нөхцөл).
+  const setCardMode = (key, mode) => {
+    setRuleCards((prev) =>
+      prev.map((c) =>
+        c.key === key
+          ? {
+              ...c,
+              mode,
+              dependsOnAnswerId: null,
+              dependsOnMatrixId: null,
+              columnKey: null,
+              rowIds: [],
+              // "Мөр бүрээр"-т зөвхөн MATRIX алгасах асуулт утгатай.
+              targetQuestionIds:
+                mode === "rows"
+                  ? c.targetQuestionIds.filter((id) => isMatrixType(questionById.get(Number(id))?.type))
+                  : c.targetQuestionIds,
+              targetRows: {},
+            }
+          : c
+      )
+    );
+  };
+  const setCardColumn = (key, columnKey) =>
+    setRuleCards((prev) => prev.map((c) => (c.key === key ? { ...c, columnKey: columnKey ?? null } : c)));
+  const setCardRowIds = (key, rowIds) =>
+    setRuleCards((prev) => prev.map((c) => (c.key === key ? { ...c, rowIds: (rowIds || []).map(Number) } : c)));
 
   const removeTargetQuestion = (key, questionId) => {
     setRuleCards((prev) =>
@@ -327,10 +519,29 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       );
       return;
     }
+    const noColumn = ruleCards.some(
+      (c) => c.mode === "rows" && c.dependsOnQuestionId && !c.columnKey
+    );
+    if (noColumn) {
+      messageApi.warning('"Мөр бүрээр" дүрэмд багана (жиш: Үгүй) сонгоно уу.');
+      return;
+    }
+
+    const emptyRows = ruleCards.some(
+      (c) => c.mode === "rows" && c.dependsOnQuestionId && c.targetQuestionIds.length && !expandRowsCard(c).length
+    );
+    if (emptyRows) {
+      messageApi.warning('"Мөр бүрээр" дүрэмд таарах (ижил нэртэй) мөр алга — алгасах асуултуудаа шалгана уу.');
+      return;
+    }
 
     const desired = [];
     ruleCards.forEach((c) => {
       if (!c.dependsOnQuestionId || !c.targetQuestionIds.length) return;
+      if (c.mode === "rows") {
+        desired.push(...expandRowsCard(c));
+        return;
+      }
       c.targetQuestionIds.forEach((targetId) => {
         const base = {
           targetQuestionId: Number(targetId),
@@ -354,8 +565,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       });
     });
 
-    const rowKey = (r) =>
-      `${r.targetQuestionId}|${r.dependsOnQuestionId}|${r.dependsOnAnswerId ?? ""}|${r.dependsOnMatrixId ?? ""}|${r.targetAnswerId ?? ""}`;
+    const rowKey = ruleKey;
     const desiredKeys = new Set(desired.map(rowKey));
     const currentByKey = new Map(
       rules.map((r) => [
@@ -370,7 +580,14 @@ const BranchingRules = ({ visible, onClose, questions }) => {
       ])
     );
 
-    const toCreate = desired.filter((r) => !currentByKey.has(rowKey(r)));
+    // Хоёр карт ижил дүрэм үүсгэж болно — нэг л удаа илгээнэ (сервер давхардлыг татгалздаг).
+    const seenCreate = new Set();
+    const toCreate = desired.filter((r) => {
+      const k = rowKey(r);
+      if (currentByKey.has(k) || seenCreate.has(k)) return false;
+      seenCreate.add(k);
+      return true;
+    });
     const toDeleteIds = [...currentByKey.entries()]
       .filter(([key]) => !desiredKeys.has(key))
       .map(([, id]) => id);
@@ -436,7 +653,8 @@ const BranchingRules = ({ visible, onClose, questions }) => {
         Нөхцөл болгох асуулт нь нэг / олон сонголттой эсвэл матриц (мөр + багана,
         жиш: "Тамхи" мөрөнд "Үгүй") байх ба алгасах асуулт нь нөхцөл асуулттай ижил
         эсвэл түүнээс хойших блокт байна. Матриц асуултыг бүхэлд нь эсвэл зөвхөн
-        сонгосон мөрүүдийг нь (жиш: "Тамхи") хасаж болно.
+        сонгосон мөрүүдийг нь (жиш: "Тамхи") хасаж болно. "Мөр бүрээр" нь нөхцөл матрицын
+        мөр бүрд (жиш: аль ч бодист "Үгүй") дараагийн матрицуудын ижил нэртэй мөрийг нэг дор хасна.
       </div>
 
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-4">
@@ -479,9 +697,19 @@ const BranchingRules = ({ visible, onClose, questions }) => {
               Number(card.dependsOnQuestionId),
               ...card.targetQuestionIds.map(Number),
             ]);
+            const rowsMode = matrixCondition && card.mode === "rows";
+            const columnOptions = matrixCondition ? columnsOf(dependsQuestion) : [];
             const skipOptions = buildGroupedOptions(excludeIds, {
               minBlockOrder: dependsQuestion?.blockOrder ?? null,
+              onlyMatrix: rowsMode,
             });
+            const bulkCount = bulkCandidates(card).length;
+            // "Мөр бүрээр": алгасах асуулт бүрт нөхцөлийн хэдэн мөр (нэрээр) таарсан.
+            const condRowsForCard = (dependsQuestion?.answers || []).filter(
+              (r) => !(card.rowIds || []).length || (card.rowIds || []).map(Number).includes(Number(r.id))
+            );
+            const matchedRows = (tid) =>
+              condRowsForCard.filter((r) => rowByName(questionById.get(Number(tid)), r.value)).length;
             const isMatrixTarget = (tid) =>
               isMatrixType(questionById.get(Number(tid))?.type);
             const plainTargets = card.targetQuestionIds.filter((tid) => !isMatrixTarget(tid));
@@ -545,6 +773,48 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                       хуудсанд зөв ажиллахгүй. Өөр асуулт сонгоно уу.
                     </div>
                   )}
+                  {matrixCondition && (
+                    <Segmented
+                      block
+                      size="small"
+                      value={rowsMode ? "rows" : "single"}
+                      onChange={(v) => setCardMode(card.key, v)}
+                      options={[
+                        { label: "Нэг мөр", value: "single" },
+                        { label: "Мөр бүрээр (ижил нэртэй мөр)", value: "rows" },
+                      ]}
+                    />
+                  )}
+                  {rowsMode && (
+                    <>
+                      <Select
+                        placeholder="Багана — жиш: Үгүй"
+                        className="w-full"
+                        value={card.columnKey || undefined}
+                        onChange={(v) => setCardColumn(card.key, v)}
+                        options={columnOptions}
+                      />
+                      <Select
+                        mode="multiple"
+                        allowClear
+                        placeholder="Бүх мөр (эсвэл зөвхөн эдгээр мөр)"
+                        className="w-full"
+                        value={(card.rowIds || []).map(Number)}
+                        onChange={(v) => setCardRowIds(card.key, v)}
+                        options={answerOptions}
+                        optionFilterProp="label"
+                        maxTagCount="responsive"
+                      />
+                      <div className="text-xs text-gray-400">
+                        Мөр бүрд: тэр мөрөнд
+                        {card.columnKey
+                          ? ` "${columnOptions.find((o) => o.value === card.columnKey)?.label ?? ""}" `
+                          : " сонгосон баганыг "}
+                        сонговол доорх асуултуудын ИЖИЛ НЭРТЭЙ мөрийг хасна (жиш: "Тамхи" → "Тамхи").
+                      </div>
+                    </>
+                  )}
+                  {!rowsMode && (
                   <Select
                     allowClear
                     placeholder={
@@ -560,7 +830,8 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                     disabled={!card.dependsOnQuestionId}
                     options={answerOptions}
                   />
-                  {matrixCondition && (
+                  )}
+                  {matrixCondition && !rowsMode && (
                     <Select
                       allowClear
                       placeholder={
@@ -575,7 +846,7 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                       options={cellOptions}
                     />
                   )}
-                  {matrixCondition && card.dependsOnAnswerId && !card.dependsOnMatrixId && (
+                  {matrixCondition && !rowsMode && card.dependsOnAnswerId && !card.dependsOnMatrixId && (
                     <div className="text-xs text-gray-400">
                       Багана сонгоогүй бол энэ мөрөнд ямар нэг хариулт өгөхөд алгасна.
                     </div>
@@ -616,8 +887,37 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                   </div>
                 )}
 
+                {/* "Мөр бүрээр": асуулт бүрт хэдэн мөр таарсныг л харуулна (мөр сонгох шаардлагагүй). */}
+                {rowsMode && matrixTargets.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mb-2">
+                    {matrixTargets.map((tid) => {
+                      const n = matchedRows(tid);
+                      return (
+                        <div
+                          key={tid}
+                          className="flex items-center justify-between gap-2 text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5"
+                        >
+                          <span className="truncate text-gray-700">{questionById.get(Number(tid))?.name || `#${tid}`}</span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            <span className={n ? "text-emerald-600" : "text-amber-600"}>
+                              {n}/{condRowsForCard.length} мөр
+                            </span>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-red-500"
+                              onClick={() => removeTargetQuestion(card.key, tid)}
+                            >
+                              <CloseOutlined style={{ fontSize: 10 }} />
+                            </button>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* MATRIX алгасах асуулт: бүтэн асуулт эсвэл зөвхөн сонгосон мөрүүд */}
-                {matrixTargets.map((tid) => {
+                {!rowsMode && matrixTargets.map((tid) => {
                   const tq = questionById.get(Number(tid));
                   const rowOptions = (tq?.answers || []).map((a) => ({
                     value: a.id,
@@ -686,15 +986,28 @@ const BranchingRules = ({ visible, onClose, questions }) => {
                         Алгасах асуулт нэмэгдээгүй байна
                       </div>
                     )}
-                    <Button
-                      type="dashed"
-                      block
-                      icon={<PlusOutlined />}
-                      disabled={!card.dependsOnQuestionId}
-                      onClick={() => setAddingTargetFor(card.key)}
-                    >
-                      Асуулт нэмэх
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="dashed"
+                        block
+                        icon={<PlusOutlined />}
+                        disabled={!card.dependsOnQuestionId}
+                        onClick={() => setAddingTargetFor(card.key)}
+                      >
+                        Асуулт нэмэх
+                      </Button>
+                      {bulkCount > 0 && (
+                        <Button
+                          type="dashed"
+                          block
+                          icon={<PlusOutlined />}
+                          onClick={() => addAllTargets(card.key)}
+                          title="Нөхцөл асуултаас хойшхи, ижил нэртэй мөртэй бүх матриц асуулт"
+                        >
+                          Дараагийн бүх тохирох ({bulkCount})
+                        </Button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
