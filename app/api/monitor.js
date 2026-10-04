@@ -42,6 +42,9 @@ export const getMonitorAll = async (range = "24h") => {
   ]);
   const failed = [overview, reports, payments, errors, services].find((x) => !x.success);
   if (failed) return failed;
+  // v1.3.0: тайлангийн үе шатын хугацаа — хуучин core-д байхгүй (404) байж болох тул
+  // хуудсыг унагаахгүй, зүгээр л харуулахгүй.
+  const timings = await get(`monitor/report-timings?range=${r}`);
   return {
     success: true,
     data: {
@@ -50,6 +53,7 @@ export const getMonitorAll = async (range = "24h") => {
       payments: payments.data,
       errors: errors.data,
       services: services.data,
+      timings: timings.success ? timings.data : null,
     },
   };
 };

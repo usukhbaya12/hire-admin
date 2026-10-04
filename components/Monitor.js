@@ -33,6 +33,21 @@ const FUNNEL_STEPS = [
 
 // №11-P1: гол flow-ын хяналт (super admin). Шинэ хүснэгтгүй, унших-л; core 45с
 // cache-тэй тул 60с auto-refresh DB-г ачаалахгүй. PII харуулахгүй (код, огноо).
+// v1.3.0: report_logs.timings-ийн түлхүүрүүд (core monitor/report-timings)
+const STAGE_LABEL = {
+  finish_to_calc_ms: "Дуусгаснаас тооцоолол эхлэх хүртэл",
+  calc_queue_ms: "Тооцооллын дараалал",
+  calc_ms: "Тооцоолол (core VPS)",
+  snapshot_ms: "Snapshot бүрдүүлэх",
+  render_handoff_ms: "Report VPS руу дамжуулах",
+  render_queue_ms: "Зурах дараалал",
+  render_ms: "PDF зурах",
+  write_ms: "PDF бичих (+R2)",
+  render_total_ms: "Зурах нийт",
+  snapshot_misses: "Snapshot miss (тоо)",
+};
+const fmtStage = (v) => (v == null ? "-" : v >= 1000 ? `${(v / 1000).toFixed(1)}с` : `${v}`);
+
 export default function Monitor() {
   const [messageApi, contextHolder] = message.useMessage();
   const [range, setRange] = useState("24h");
@@ -145,6 +160,29 @@ export default function Monitor() {
             </div>
             <div className="mt-2 text-xs text-gray-500">Дахин боловсруулах: Үр дүн хуудас → тухайн мөрийн "ops" (recalculate / regenerate / retry).</div>
           </Card>
+
+          {data.timings?.available && (
+            <Card
+              size="small"
+              title={`Тайлангийн үе шат (v1.3.0, ${data.timings.n} тайлан)`}
+              extra={<span className="text-xs text-gray-500">Нийт (дуусгахаас PDF хүртэл): p50 {data.timings.endToEndSec?.p50 ?? "-"}с / p95 {data.timings.endToEndSec?.p95 ?? "-"}с</span>}
+            >
+              <Table
+                size="small"
+                rowKey="key"
+                pagination={false}
+                dataSource={data.timings.stages.filter((r) => r.n > 0)}
+                locale={{ emptyText: "v2 pipeline-аар дууссан тайлан алга" }}
+                columns={[
+                  { title: "Үе шат", dataIndex: "key", key: "k", render: (k) => STAGE_LABEL[k] || k },
+                  { title: "n", dataIndex: "n", key: "n", width: 70 },
+                  { title: "p50", dataIndex: "p50", key: "p50", width: 100, render: (v, r) => (r.key === "snapshot_misses" ? v ?? "-" : fmtStage(v)) },
+                  { title: "p95", dataIndex: "p95", key: "p95", width: 100, render: (v, r) => (r.key === "snapshot_misses" ? v ?? "-" : fmtStage(v)) },
+                  { title: "max", dataIndex: "max", key: "max", width: 100, render: (v, r) => (r.key === "snapshot_misses" ? v ?? "-" : fmtStage(v)) },
+                ]}
+              />
+            </Card>
+          )}
 
           {/* Payments + services */}
           <div className="grid gap-4 lg:grid-cols-2">
