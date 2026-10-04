@@ -60,6 +60,8 @@ export default function Test() {
       if (id) {
         await getAssessmentById(id).then((d) => {
           if (d.success) setAssessmentData(d.data);
+          // Өмнө нь чимээгүй өнгөрч, "Ерөнхий мэдээлэл" таб null-аас уншиж хуудас бүхэлдээ унадаг байв.
+          else message.error(d.message || "Тестийн мэдээллийг ачаалж чадсангүй.");
         });
         await getAssessmentCategory().then((d) => {
           if (d.success) setAssessmentCategories(d.data);

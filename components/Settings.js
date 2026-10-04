@@ -1104,29 +1104,30 @@ const Settings = ({
     </div>
   );
 
+  // assessmentData нь ачаалагдаагүй (жиш: core алдаа буцаасан) үед ч таб унахгүй.
   const stats = [
     {
       icon: <AlarmBoldDuotone width={36} height={36} />,
       label: "Хугацаа",
       value:
-        assessmentData.data?.duration > 0
-          ? assessmentData.data?.duration + " " + "минут"
+        assessmentData?.data?.duration > 0
+          ? assessmentData?.data?.duration + " " + "минут"
           : "Хугацаагүй",
     },
     {
       icon: <Flag2BoldDuotone width={36} height={36} />,
       label: "Түвшин",
-      value: assessmentData.data?.level || "Хамаарахгүй",
+      value: assessmentData?.data?.level || "Хамаарахгүй",
     },
     {
       icon: <FolderCloudBoldDuotone width={36} height={36} />,
       label: "Тест банк",
-      value: assessmentData.count,
+      value: assessmentData?.count,
     },
     {
       icon: <QuestionCircleBoldDuotone width={36} height={36} />,
       label: "Асуултын тоо",
-      value: assessmentData.data?.questionCount,
+      value: assessmentData?.data?.questionCount,
     },
   ];
 
@@ -1146,14 +1147,16 @@ const Settings = ({
                     priority
                   />
                   <div className="absolute top-1 inset-x-0 h-[200px] sm:h-[150px] md:h-[150px] xl:h-[200px] 2xl:h-[250px] flex items-start justify-center overflow-hidden">
-                    <Image
-                      src={getFileUrl(assessmentData.data.icons)}
-                      alt="Assessment Icon"
-                      width={600}
-                      height={200}
-                      className="w-[250px] sm:w-[250px] md:w-[320px] lg:w-[320px] xl:w-[420px] 2xl:w-[480px] object-top object-cover hidden sm:block"
-                      priority
-                    />
+                    {assessmentData?.data?.icons && (
+                      <Image
+                        src={getFileUrl(assessmentData.data.icons)}
+                        alt="Assessment Icon"
+                        width={600}
+                        height={200}
+                        className="w-[250px] sm:w-[250px] md:w-[320px] lg:w-[320px] xl:w-[420px] 2xl:w-[480px] object-top object-cover hidden sm:block"
+                        priority
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -1171,24 +1174,24 @@ const Settings = ({
                         title: "Тестүүд",
                       },
                       {
-                        title: assessmentData.category.name,
+                        title: assessmentData?.category?.name || "Ангилал сонгоогүй",
                       },
                     ]}
                   />
 
                   <h1 className="text-4xl font-black mb-4 w-3/4 w-3/4 xl:w-[80%] 2xl:w-[90%] bg-gradient-to-r from-main to-secondary bg-clip-text text-transparent">
-                    {assessmentData.data.name}
+                    {assessmentData?.data?.name}
                   </h1>
                   <div className="text-gray-700 mb-8 flex items-center gap-2">
                     <div className="text-main">
                       <BookBookmarkBoldDuotone width={18} height={18} />
                     </div>
-                    {assessmentData.data.author || "Тест зохиогч"}
+                    {assessmentData?.data?.author || "Тест зохиогч"}
                     <div>•</div>
                     <div className="text-black font-bold">
-                      {assessmentData.data.price > 0 ? (
+                      {assessmentData?.data?.price > 0 ? (
                         <span>
-                          {assessmentData.data.price.toLocaleString()}₮
+                          {assessmentData?.data?.price.toLocaleString()}₮
                         </span>
                       ) : (
                         "Үнэгүй"
@@ -1228,17 +1231,17 @@ const Settings = ({
                   {
                     icon: <ClipboardTextBoldDuotone width={18} />,
                     title: "Товч тайлбар",
-                    content: assessmentData.data.description,
+                    content: assessmentData?.data?.description,
                   },
                   {
                     icon: <EyeBoldDuotone width={18} />,
                     title: "Хэмжих зүйлс",
-                    content: assessmentData.data.measure,
+                    content: assessmentData?.data?.measure,
                   },
                   {
                     icon: <CaseRoundMinimalisticBoldDuotone width={18} />,
                     title: "Хэрэглээ",
-                    content: assessmentData.data.usage,
+                    content: assessmentData?.data?.usage,
                   },
                 ].map((item, index) => (
                   <div
