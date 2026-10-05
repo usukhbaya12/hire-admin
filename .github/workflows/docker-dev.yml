@@ -60,5 +60,9 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Server Action ID-г deploy хооронд тогтвортой байлгана (Dockerfile-ийн тайлбарыг үз).
+          # Repo → Settings → Secrets → NEXT_SERVER_ACTIONS_ENCRYPTION_KEY (`openssl rand -base64 32`).
+          secrets: |
+            next_sa_key=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

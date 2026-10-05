@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node test/api-boundary.test.mjs"
+    "test": "node test/api-boundary.test.mjs && node test/stale-action.test.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^1.23.0",

@@ -2,6 +2,7 @@ import { Provider } from "@/utils/provider";
 import localFont from "next/font/local";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { Toaster } from "@/components/ui/sonner";
+import StaleDeployGuard from "@/components/StaleDeployGuard";
 import "./globals.css";
 const GIP = localFont({
   src: [
@@ -53,6 +54,7 @@ export default function RootLayout({ children }) {
         <Provider>
           <AntdRegistry>{children}</AntdRegistry>
           <Toaster position="top-center" />
+          <StaleDeployGuard />
         </Provider>
       </body>
     </html>
