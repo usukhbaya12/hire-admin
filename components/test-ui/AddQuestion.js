@@ -103,7 +103,7 @@ const AddQuestion = ({
         const formData = new FormData();
         formData.append("files", file);
 
-        const uploadedImages = await imageUploader(formData);
+        const uploadedImages = await imageUploader(formData, "question");
 
         if (
           uploadedImages &&

@@ -48,3 +48,12 @@ export const opsReportUpload = async (code, formData) =>
 
 export const opsLog = async (code) =>
   call("GET", `ops/log${code ? `?code=${encodeURIComponent(code)}` : ""}`);
+
+// Ops цэвэрлэгээ — тестийн / сонгосон шалгалтыг PDF (локал + R2) болон DB-ээс устгана.
+// selector: { codes: [...] } | { email, since, until? } | { loadtest: true } | { preview: true, since }
+// (+ force). Эхлээд preview → token (10 мин) → apply.
+export const opsCleanupPreview = async (selector) =>
+  call("POST", "ops/cleanup/preview", { json: selector });
+
+export const opsCleanupApply = async (selector, token) =>
+  call("POST", "ops/cleanup/apply", { json: { ...selector, token } });

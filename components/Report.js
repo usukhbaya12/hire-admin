@@ -247,7 +247,7 @@ const Report = ({
         const formData = new FormData();
         formData.append("files", info.file.originFileObj);
 
-        const res = await imageUploader(formData);
+        const res = await imageUploader(formData, "assessment");
 
         if (res === false) {
           throw new Error("Upload failed on server");

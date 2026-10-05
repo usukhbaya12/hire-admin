@@ -1113,6 +1113,7 @@ export default function ResultsPageClient({ initialData = null }) {
           code={opsCode}
           open={!!opsCode}
           onClose={() => setOpsCode(null)}
+          onDeleted={() => fetchData({ page: pagination.page || 1, limit: pagination.limit })}
         />
       )}
     </div>

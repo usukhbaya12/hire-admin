@@ -30,10 +30,13 @@ export const handlePasswordChange = async (data) => {
   }
 };
 
-export async function imageUploader(images) {
+// purpose: R2 дээр ангилах зориулалт (question, answer-option, assessment, blog, avatar, misc …
+// — core src/app/media/media-policy.ts). Өгөөгүй бол core "misc" гэж хадгална.
+export async function imageUploader(images, purpose) {
   try {
     const token = await getAuthToken();
-    let res = await fetch(`${api}upload`, {
+    const q = purpose ? `?purpose=${encodeURIComponent(purpose)}` : "";
+    let res = await fetch(`${api}upload${q}`, {
       method: "POST",
       headers: {
         cache: "no-store",

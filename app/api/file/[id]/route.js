@@ -25,11 +25,22 @@ export async function GET(_request, context) {
   try {
     response = await fetch(`${apiInternal}file/${encodeURIComponent(id)}`, {
       cache: "no-store",
+      // R2/CDN-д зөөгдсөн файл (media_object) → core 302 буцаана; browser-ийг шууд CDN руу
+      // явуулна (байтыг энэ сервероор дамжуулахгүй).
+      redirect: "manual",
       signal: AbortSignal.timeout(15000),
     });
   } catch (error) {
     console.error("FILE PROXY ERROR:", id, error?.message);
     return new NextResponse("File fetch failed", { status: 502 });
+  }
+
+  const location = response.headers.get("location");
+  if (response.status >= 300 && response.status < 400 && /^https?:\/\//i.test(location || "")) {
+    return NextResponse.redirect(location, {
+      status: 302,
+      headers: { "Cache-Control": response.headers.get("cache-control") || "public, max-age=86400" },
+    });
   }
 
   if (!response.ok) {

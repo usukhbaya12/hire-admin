@@ -182,7 +182,7 @@ const useUploader = (messageApi) => {
     try {
       const formData = new FormData();
       formData.append("files", file);
-      const uploadResult = await imageUploader(formData);
+      const uploadResult = await imageUploader(formData, "blog");
 
       if (
         uploadResult &&

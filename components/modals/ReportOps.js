@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Modal, Button, Popconfirm, Tag, message } from "antd";
+import { Modal, Button, Popconfirm, Tag, message, Input, Checkbox } from "antd";
 import {
   opsReportStatus,
   opsReportAction,
   opsReportUpload,
   opsLog,
+  opsCleanupPreview,
+  opsCleanupApply,
 } from "@/app/api/ops";
+import { CLEANUP_SKIP_REASON, CleanupCounts } from "@/components/Cleanup";
 
 const STATUS_COLOR = {
   COMPLETED: "green",
@@ -24,7 +27,7 @@ const fmtSize = (n) =>
 
 // Super admin-д зориулсан тайлангийн ops цонх: төлөв харах, дахин зурах /
 // дахин бодох / дахин оролдох, PDF гараар солих. Үйлдэл бүр core-д аудитлагдана.
-export default function ReportOpsModal({ code, open, onClose }) {
+export default function ReportOpsModal({ code, open, onClose, onDeleted }) {
   const [messageApi, contextHolder] = message.useMessage();
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
@@ -83,6 +86,42 @@ export default function ReportOpsModal({ code, open, onClose }) {
     }
   };
 
+  // Устгах: preview → кодыг бичиж баталгаажуулах → apply (PDF: локал + R2, DB бүх мөр).
+  const [del, setDel] = useState(null); // preview хариу
+  const [force, setForce] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  useEffect(() => {
+    if (!open) {
+      setDel(null);
+      setForce(false);
+      setConfirmText("");
+    }
+  }, [open]);
+
+  const previewDelete = async (withForce = force) => {
+    setBusy("delete-preview");
+    const res = await opsCleanupPreview({ codes: [code], ...(withForce ? { force: true } : {}) });
+    setBusy("");
+    if (res.success) setDel(res.data);
+    else messageApi.error(res.message);
+  };
+  const applyDelete = async () => {
+    setBusy("delete");
+    const res = await opsCleanupApply({ codes: [code], ...(force ? { force: true } : {}) }, del?.token);
+    setBusy("");
+    if (!res.success) {
+      messageApi.error(res.message);
+      return;
+    }
+    if (res.data?.failed?.length) {
+      messageApi.error(`Устгаж чадсангүй: ${res.data.failed[0].error}`);
+      return;
+    }
+    messageApi.success("Шалгалт, тайлан (PDF, R2) устгагдлаа.");
+    onDeleted?.(code);
+    onClose?.();
+  };
+
   const log = state?.log;
   const failed = log?.status === "FAILED";
 
@@ -123,6 +162,52 @@ export default function ReportOpsModal({ code, open, onClose }) {
             <div className="mb-1 font-medium">PDF гараар солих</div>
             <input type="file" accept="application/pdf" disabled={!!busy} onChange={upload} />
             <div className="mt-1 text-xs text-gray-500">≤ 20MB, зөвхөн бүрэн PDF (%PDF- … %%EOF). Өмнөх файл .bak болж үлдэнэ.</div>
+          </div>
+
+          <div className="rounded-lg border border-red-200 p-3">
+            <div className="mb-1 font-medium text-red-600">Устгах</div>
+            <div className="mb-2 text-xs text-gray-500">
+              Шалгалт, хариулт, үр дүн, тайлангийн PDF (сервер + Cloudflare R2), тайлангийн бүртгэлийг бүрмөсөн устгана. Буцаах боломжгүй.
+            </div>
+            {!del ? (
+              <Button danger loading={busy === "delete-preview"} disabled={!!busy} onClick={() => previewDelete()}>
+                Юу устахыг харах
+              </Button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <CleanupCounts plan={del} />
+                {del.skipped?.length > 0 && (
+                  <div className="text-xs text-amber-700">
+                    Алгасагдсан: {CLEANUP_SKIP_REASON[del.skipped[0].reason] || del.skipped[0].reason}
+                    {del.skipped[0].reason !== "in-progress-report" && (
+                      <label className="ml-2 inline-flex items-center gap-1">
+                        <Checkbox
+                          checked={force}
+                          onChange={(e) => {
+                            setForce(e.target.checked);
+                            previewDelete(e.target.checked);
+                          }}
+                        />
+                        Тэгсэн ч устгах
+                      </label>
+                    )}
+                  </div>
+                )}
+                {del.token && (
+                  <>
+                    <Input
+                      size="small"
+                      placeholder={`Баталгаажуулахын тулд кодыг бичнэ үү: ${code}`}
+                      value={confirmText}
+                      onChange={(e) => setConfirmText(e.target.value.trim())}
+                    />
+                    <Button danger type="primary" loading={busy === "delete"} disabled={confirmText !== code || !!busy} onClick={applyDelete}>
+                      Бүрмөсөн устгах
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {history.length > 0 && (

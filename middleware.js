@@ -36,7 +36,7 @@ export async function middleware(request) {
     }
 
     // №11: /monitor зөвхөн super admin (10). Бусад админ → нүүр хуудас.
-    if (pathname.startsWith("/monitor") && userRole !== 10) {
+    if ((pathname.startsWith("/monitor") || pathname.startsWith("/cleanup")) && userRole !== 10) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 

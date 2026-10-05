@@ -68,7 +68,7 @@ const AnswerOptions = ({
         const formData = new FormData();
         formData.append("files", file);
 
-        const uploadedImages = await imageUploader(formData);
+        const uploadedImages = await imageUploader(formData, "answer-option");
 
         if (
           uploadedImages &&

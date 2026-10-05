@@ -590,7 +590,7 @@ const Settings = ({
       try {
         const formData = new FormData();
         formData.append("files", file);
-        const res = await imageUploader(formData);
+        const res = await imageUploader(formData, "assessment");
 
         if (res && res[0]) {
           setImageUrl(res[0]);

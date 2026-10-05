@@ -13,6 +13,7 @@ import {
   LightbulbBoltBoldDuotone,
   MoneyBagBoldDuotone,
   ChartSquareBoldDuotone,
+  TrashBinMinimalisticBoldDuotone,
   NotesBoldDuotone,
   PenNewRoundBoldDuotone,
   PeopleNearbyBoldDuotone,
@@ -92,6 +93,12 @@ const Menu = () => {
             key: "monitor",
             href: "/monitor",
             icon: <ChartSquareBoldDuotone width={18} />,
+          },
+          {
+            name: "Тест цэвэрлэх",
+            key: "cleanup",
+            href: "/cleanup",
+            icon: <TrashBinMinimalisticBoldDuotone width={18} />,
           },
         ]
       : []),
