@@ -587,7 +587,24 @@ const MatrixSettings = ({ question, onUpdate }) => (
   </>
 );
 
-const ConstantSumSettings = ({ question, onUpdate }) => (
+const ConstantSumSettings = ({ question, onUpdate }) => {
+  // Бутархай оноо (жиш: 2.5) байршуулах — settings.decimal / decimalPlaces (web
+  // app/utils/constantSum.js уншина). Унтраалттай бол хуучнаараа бүхэл тоо.
+  const s = question.question?.settings || {};
+  const places = Math.min(4, Math.max(1, Number(s.decimalPlaces) || 1));
+  const precision = s.decimal ? places : 0;
+  const step = s.decimal ? Math.pow(10, -places) : 1;
+  const setSettings = (patch) =>
+    onUpdate(question.id, {
+      question: {
+        ...question.question,
+        settings: { ...s, ...patch },
+      },
+    });
+  const toNum = (v) => (v === null || v === undefined || v === "" ? undefined : Number(v));
+  const point = toNum(question.question?.point) ?? 10;
+
+  return (
   <>
     <Collapse
       expandIcon={({ isActive }) => (
@@ -634,9 +651,11 @@ const ConstantSumSettings = ({ question, onUpdate }) => (
     <Divider />
     <div className="px-8 flex items-center gap-2">
       <InputNumber
-        min={1}
+        min={step}
         max={1000}
-        value={question.question?.point || 10}
+        precision={precision}
+        step={step}
+        value={point}
         onChange={(value) =>
           onUpdate(question.id, {
             question: {
@@ -665,8 +684,10 @@ const ConstantSumSettings = ({ question, onUpdate }) => (
                 <span>Доод:</span>
                 <InputNumber
                   min={0}
-                  max={question.question?.point - 1}
-                  value={question.question?.minValue}
+                  max={point - step}
+                  precision={precision}
+                  step={step}
+                  value={toNum(question.question?.minValue)}
                   onChange={(value) =>
                     onUpdate(question.id, {
                       question: {
@@ -680,9 +701,11 @@ const ConstantSumSettings = ({ question, onUpdate }) => (
               <div className="flex items-center gap-2">
                 <span>Дээд:</span>
                 <InputNumber
-                  min={question.question?.minValue || 0}
-                  max={question.question?.point}
-                  value={question.question?.maxValue}
+                  min={toNum(question.question?.minValue) || 0}
+                  max={point}
+                  precision={precision}
+                  step={step}
+                  value={toNum(question.question?.maxValue)}
                   onChange={(value) =>
                     onUpdate(question.id, {
                       question: {
@@ -699,8 +722,30 @@ const ConstantSumSettings = ({ question, onUpdate }) => (
       ]}
     />
     <Divider className="clps" />
+    <div className="px-8 flex items-center gap-2">
+      <Switch
+        size="small"
+        checked={!!s.decimal}
+        onChange={(checked) => setSettings({ decimal: checked })}
+      />
+      <span>Бутархай тоо зөвшөөрөх</span>
+    </div>
+    {s.decimal && (
+      <div className="px-8 pt-3 flex items-center gap-2">
+        <InputNumber
+          min={1}
+          max={4}
+          value={places}
+          onChange={(v) => setSettings({ decimalPlaces: v || 1 })}
+          className="w-20"
+        />
+        <span>орон (таслалаас хойш)</span>
+      </div>
+    )}
+    <Divider className="clps" />
   </>
-);
+  );
+};
 
 const BlockSettings = ({
   block,
