@@ -1,0 +1,16 @@
+# Docker build context — CI (git checkout)-тэй ижил байлгана.
+# node_modules: Mac-ийн native модуль (canvas.node гэх мэт) Linux image руу орж
+#   "invalid ELF header" болдог; deps stage `npm ci`-ээр дахин суулгана.
+# .env*: локал утга (NEXT_PUBLIC_API_URL=http://localhost…) client bundle-д шингэнэ.
+#   CI-д эдгээр файл байхгүй (git-д track хийгдээгүй) — prod тохиргоо runtime env-ээс.
+node_modules
+.next
+.git
+.github
+_to_delete
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+npm-debug.log*
