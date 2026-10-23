@@ -657,43 +657,6 @@ textarea.ant-input {
   background: #f36421 !important;
 }
 
-.ant-slider .ant-slider-mark-text {
-  line-height: 1.2 !important;
-  padding-top: 6px !important;
-  font-size: 12px !important;
-  width: 70px !important;
-}
-
-@media (max-width: 767px) {
-  .ant-slider .ant-slider-mark-text {
-    word-break: break-word !important;
-    white-space: normal !important;
-    width: 50px !important;
-    text-align: center !important;
-  }
-}
-
-.ant-slider .ant-slider-track {
-  background-color: #f59e0b !important;
-}
-
-.ant-slider:hover .ant-slider-track {
-  background-color: #f36421 !important;
-}
-
-.ant-slider .ant-slider-dot-active {
-  border-color: #f36421 !important;
-}
-
-.ant-slider:hover .ant-slider-dot-active {
-  border-color: #f36421 !important;
-}
-
-.ant-slider-horizontal.ant-slider-with-marks {
-  margin-bottom: 32px !important;
-  margin-left: -12px !important;
-}
-
 .arc-spinner {
   width: 48px;
   height: 48px;

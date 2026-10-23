@@ -8,7 +8,6 @@ import {
   InputNumber,
   Tooltip,
   message,
-  Slider,
 } from "antd";
 import { MoreIcon, DropdownIcon } from "../Icons";
 import MatrixGrid from "./MatrixGrid";
@@ -16,6 +15,7 @@ import { deleteAnswerById } from "@/app/api/assessment";
 import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { imageUploader } from "@/app/api/constant";
 import { NumberAnswer, TimeAnswer } from "./NumericAnswer";
+import ScaleAnswer from "./ScaleAnswer";
 import { sortedAnswerCategories, answerCategoryLabel } from "@/utils/answerCategories";
 import {
   GalleryCircleBoldDuotone,
@@ -402,24 +402,9 @@ const AnswerOptions = ({
   const renderSlider = () => {
     const min = Number(question.question?.minValue) || 0;
     const max = Number(question.question?.maxValue) || 5;
-
-    const getMarks = () => {
-      if (!question.question?.slider) {
-        return Array.from({ length: max - min + 1 }, (_, i) => i + min).reduce(
-          (acc, num) => ({ ...acc, [Number(num)]: String(num) }),
-          {},
-        );
-      }
-
-      const labels = question.question.slider.split(",").map((s) => s.trim());
-      return labels.reduce(
-        (acc, label, idx) => ({
-          ...acc,
-          [Number(min + idx)]: label,
-        }),
-        {},
-      );
-    };
+    const labels = question.question?.slider
+      ? question.question.slider.split(",").map((s) => s.trim())
+      : null;
 
     return (
       <div className="w-full">
@@ -440,18 +425,10 @@ const AnswerOptions = ({
                 getOptionMenu={getOptionMenu}
                 question={question}
                 customControl={
-                  <Slider
-                    disabled
-                    min={min}
-                    max={max}
-                    step={1}
-                    value={Number(option.answer.point) || min}
-                    onChange={(value) =>
-                      handleOptionChange(index, { point: Number(value) })
-                    }
-                    marks={getMarks()}
-                    className="w-60"
-                  />
+                  // Шалгуулагчид харагдах хэмжүүр (web-тэй ижил ScaleAnswer) — зөвхөн харагдац.
+                  <div className="w-96 max-w-full pointer-events-none" aria-hidden>
+                    <ScaleAnswer min={min} max={max} labels={labels} onChange={() => {}} />
+                  </div>
                 }
               />
             </div>
@@ -464,24 +441,9 @@ const AnswerOptions = ({
   const renderSliderSingle = () => {
     const min = Number(question.question?.minValue) || 0;
     const max = Number(question.question?.maxValue) || 5;
-
-    const getMarks = () => {
-      if (!question.question?.slider) {
-        return Array.from({ length: max - min + 1 }, (_, i) => i + min).reduce(
-          (acc, num) => ({ ...acc, [Number(num)]: String(num) }),
-          {},
-        );
-      }
-
-      const labels = question.question.slider.split(",").map((s) => s.trim());
-      return labels.reduce(
-        (acc, label, idx) => ({
-          ...acc,
-          [Number(min + idx)]: label,
-        }),
-        {},
-      );
-    };
+    const labels = question.question?.slider
+      ? question.question.slider.split(",").map((s) => s.trim())
+      : null;
 
     return (
       <div className="w-full">
@@ -502,18 +464,10 @@ const AnswerOptions = ({
                 getOptionMenu={getOptionMenu}
                 question={question}
                 customControl={
-                  <Slider
-                    disabled
-                    min={min}
-                    max={max}
-                    step={1}
-                    value={Number(option.answer.point) || min}
-                    onChange={(value) =>
-                      handleOptionChange(index, { point: Number(value) })
-                    }
-                    marks={getMarks()}
-                    className="w-96"
-                  />
+                  // Шалгуулагчид харагдах хэмжүүр (web-тэй ижил ScaleAnswer) — зөвхөн харагдац.
+                  <div className="w-96 max-w-full pointer-events-none" aria-hidden>
+                    <ScaleAnswer min={min} max={max} labels={labels} onChange={() => {}} />
+                  </div>
                 }
               />
             </div>

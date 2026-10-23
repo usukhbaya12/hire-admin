@@ -14,12 +14,12 @@ import {
   message,
   Modal,
   Image,
-  Slider,
 } from "antd";
 import { QUESTION_TYPES } from "@/utils/values";
 import { DropdownIcon } from "./Icons";
 import { getFileUrl, normalizeFileUrls } from "@/utils/fileUrl";
 import { NumberAnswer, TimeAnswer } from "./test-ui/NumericAnswer";
+import ScaleAnswer from "./test-ui/ScaleAnswer";
 import {
   BookmarkBoldDuotone,
   CloseCircleBoldDuotone,
@@ -609,108 +609,50 @@ const Preview = ({ assessmentData, blocks }) => {
         );
 
       case QUESTION_TYPES.SLIDER:
-        const min = parseInt(question.question?.minValue) || 1;
+      case QUESTION_TYPES.SLIDERSINGLE: {
+        // web/components/exam/Question.js-тэй ижил (ScaleAnswer). Хариулт нь мөрийн индексээр.
+        const min = parseInt(question.question?.minValue) || 0;
         const max = parseInt(question.question?.maxValue) || 5;
-
-        const internalMin = min - 1;
-
-        const marks = {};
-
-        if (question.question?.slider) {
-          const labels = question.question.slider
-            .split(",")
-            .map((s) => s.trim());
-
-          labels.forEach((label, idx) => {
-            marks[min + idx] = label;
-          });
-        } else {
-          for (let i = min; i <= max; i++) {
-            marks[i] = i.toString();
-          }
-        }
+        const labels = question.question?.slider
+          ? question.question.slider.split(",").map((s) => s.trim())
+          : null;
+        const multi = question.type === QUESTION_TYPES.SLIDER;
+        const hasName = !!String(question.question?.name || "")
+          .replace(/<[^>]*>|&nbsp;/g, "")
+          .trim();
 
         return (
-          <div className="space-y-4 pl-3.5!">
-            {question.answers.map((answer, index) => (
-              <>
-                <div
-                  key={index}
-                  className="flex flex-col md:flex-row items-center gap-2 md:gap-4 md:justify-between"
-                >
-                  <div className="md:w-1/4 w-full">{answer.answer.value}</div>
-                  <div className="flex pl-2 sm:pl-0 pr-5">
-                    <Slider
-                      min={internalMin}
-                      max={max}
-                      value={answers[question.id]?.[index] ?? internalMin}
-                      onChange={(value) => {
-                        const newAnswer = {
-                          ...(answers[question.id] || {}),
-                          [index]: value,
-                        };
-                        handleAnswer(question.id, newAnswer);
-                      }}
-                      marks={marks}
-                      disabled={false}
-                      className="w-[262px]! md:w-80 lg:w-96 custom-slider"
-                    />
-                  </div>
-                </div>
-                <Divider />
-              </>
-            ))}
-          </div>
-        );
-
-      case QUESTION_TYPES.SLIDERSINGLE:
-        const minSingle = parseInt(question.question?.minValue) || 1;
-        const maxSingle = parseInt(question.question?.maxValue) || 5;
-        const internalMinSingle = minSingle - 1;
-        const marksSingle = {};
-
-        if (question.question?.slider) {
-          const labels = question.question.slider
-            .split(",")
-            .map((s) => s.trim());
-
-          labels.forEach((label, idx) => {
-            marksSingle[minSingle + idx] = label;
-          });
-        } else {
-          for (let i = minSingle; i <= maxSingle; i++) {
-            marksSingle[i] = i.toString();
-          }
-        }
-
-        return (
-          <div className="space-y-4 pl-3.5!">
+          <div className="space-y-4">
             {question.answers.map((answer, index) => (
               <React.Fragment key={index}>
-                <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 md:justify-between">
-                  <div className="flex pl-6 pr-5 w-full">
-                    <Slider
-                      min={internalMinSingle}
-                      max={maxSingle}
-                      value={answers[question.id]?.[index] ?? internalMinSingle}
-                      onChange={(value) => {
-                        const newAnswer = {
+                {index > 0 && <Divider />}
+                <div className="flex flex-col gap-3 md:flex-row md:gap-8">
+                  {multi && (
+                    <div className="font-semibold md:w-1/4">
+                      {answer.answer.value}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <ScaleAnswer
+                      min={min}
+                      max={max}
+                      labels={labels}
+                      value={answers[question.id]?.[index]}
+                      onChange={(v) =>
+                        handleAnswer(question.id, {
                           ...(answers[question.id] || {}),
-                          [index]: value,
-                        };
-                        handleAnswer(question.id, newAnswer);
-                      }}
-                      marks={marksSingle}
-                      disabled={false}
-                      className="w-full custom-slider"
+                          [index]: v,
+                        })
+                      }
+                      emphasize={!multi && !hasName}
                     />
                   </div>
                 </div>
-                <Divider />
               </React.Fragment>
             ))}
           </div>
         );
+      }
 
       case QUESTION_TYPES.NUMBER:
       case QUESTION_TYPES.TIME: {
@@ -813,21 +755,21 @@ const Preview = ({ assessmentData, blocks }) => {
               className="rounded-2xl duration-200 sm:px-1"
             >
               <div className="flex gap-5 items-center">
-                <div className="relative">
-                  <div className="w-11! h-11! bg-gray-50 rounded-xl flex items-center justify-center relative">
-                    <span className="text-gray-700 font-medium">
-                      {index + 1}
-                    </span>
-                    <div className="absolute -top-1 -right-1">
-                      <QuestionActions question={question} index={index} />
-                    </div>
-                  </div>
+                <div className="w-11! h-11! shrink-0 bg-gray-50 rounded-xl flex items-center justify-center">
+                  <span className="text-gray-700 font-medium">
+                    {index + 1}
+                  </span>
                 </div>
 
                 <div className="flex-1">
                   <div className="prose max-w-none">
                     {renderQuestionContent(question)}
                   </div>
+                </div>
+
+                {/* Хавчуурга — дугаартай давхцахгүй, баруун талд (web-тэй ижил). */}
+                <div className="shrink-0 self-start">
+                  <QuestionActions question={question} index={index} />
                 </div>
               </div>
               {question.question.file && (
