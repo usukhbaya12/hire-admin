@@ -318,6 +318,7 @@ const NumberSettings = ({ question, onUpdate }) => {
   const setS = (patch) => set({ settings: { ...s, ...patch } });
   const min = numOrNull(q.minValue);
   const max = numOrNull(q.maxValue);
+  const correct = numOrNull(s.correct);
   const places = Number(s.decimalPlaces) || 2;
   const precision = s.decimal ? places : 0;
   const step = s.decimal ? Math.pow(10, -places) : 1;
@@ -351,6 +352,28 @@ const NumberSettings = ({ question, onUpdate }) => {
         </div>
         <RangeWarning min={min} max={max} />
         <div className="text-xs text-gray-400">Хоосон бол хязгааргүй.</div>
+      </div>
+      <Divider />
+      <div className="font-bold px-8">Зөв хариулт</div>
+      <div className="px-8 pt-2 space-y-1">
+        <InputNumber
+          value={correct}
+          precision={precision}
+          step={step}
+          placeholder="тохируулаагүй"
+          onChange={(v) => setS({ correct: numOrNull(v) })}
+          className="w-40"
+        />
+        {correct !== null &&
+          ((min !== null && correct < min) || (max !== null && correct > max)) && (
+            <div className="text-red-500 text-xs">
+              Зөв хариулт хүрээнээс гадуур байна.
+            </div>
+          )}
+        <div className="text-xs text-gray-400">
+          Зөв хариулбал 1 оноо тестийн нийт оноонд нэмэгдэнэ. Хоосон бол
+          оруулсан тоо өөрөө оноо болно.
+        </div>
       </div>
       <Divider />
       <div className="px-8 flex items-center gap-2">

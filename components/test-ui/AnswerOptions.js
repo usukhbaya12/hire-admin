@@ -508,6 +508,12 @@ const AnswerOptions = ({
                       onChange={() => {}}
                       disabled
                     />
+                    {question.type === 90 &&
+                      question.question?.settings?.correct != null && (
+                        <div className="pl-3.5 text-sm text-green-600">
+                          Зөв хариулт: {question.question.settings.correct} · 1 оноо
+                        </div>
+                      )}
                   </div>
                 }
               />
