@@ -19,6 +19,7 @@ export default function ScaleAnswer({ min, max, labels, value, onChange, emphasi
   }
   const n = steps.length;
   const cells = n > 7;
+  const mids = cells ? [] : steps.slice(1, -1);
   const sel = value >= min && value <= max ? steps[value - min] : null;
   const first = steps[0];
   const last = steps[n - 1];
@@ -57,30 +58,54 @@ export default function ScaleAnswer({ min, max, labels, value, onChange, emphasi
           ))}
         </div>
       ) : (
-        <div className="relative flex items-center justify-between">
-          <div className="absolute inset-x-[16px] top-1/2 h-[2px] -translate-y-1/2 rounded bg-gray-200" />
-          {sel && n > 1 && (
+        <div>
+          <div className="relative flex items-center justify-between">
+            <div className="absolute inset-x-[16px] top-1/2 h-[2px] -translate-y-1/2 rounded bg-gray-200" />
+            {sel && n > 1 && (
+              <div
+                className="absolute left-[16px] top-1/2 h-[3px] -translate-y-1/2 rounded bg-main"
+                style={{ width: `calc((100% - 32px) * ${(sel.v - min) / (n - 1)})` }}
+              />
+            )}
+            {steps.map((s) => (
+              <button
+                key={s.v}
+                type="button"
+                aria-pressed={sel === s}
+                title={s.text || undefined}
+                onClick={() => onChange(s.v)}
+                className={`relative h-[32px] w-[32px] shrink-0 rounded-full text-[13px] transition-colors ${
+                  sel === s
+                    ? "bg-main font-bold text-white ring-4 ring-[#ffe4d3]"
+                    : "border-[1.5px] border-gray-300 bg-white font-semibold text-gray-500 hover:border-main"
+                }`}
+              >
+                {s.num}
+              </button>
+            ))}
+          </div>
+          {mids.some((s) => s.text) && (
+            // Дунд цэгийн шошго (Ховор, Заримдаа …) тойрог бүрийн яг доор: багана = цэг хоорондын зай,
+            // захын margin нь эхний/сүүлийн тойргийн төв + хагас багана.
             <div
-              className="absolute left-[16px] top-1/2 h-[3px] -translate-y-1/2 rounded bg-main"
-              style={{ width: `calc((100% - 32px) * ${(sel.v - min) / (n - 1)})` }}
-            />
-          )}
-          {steps.map((s) => (
-            <button
-              key={s.v}
-              type="button"
-              aria-pressed={sel === s}
-              title={s.text || undefined}
-              onClick={() => onChange(s.v)}
-              className={`relative h-[32px] w-[32px] shrink-0 rounded-full text-[13px] transition-colors ${
-                sel === s
-                  ? "bg-main font-bold text-white ring-4 ring-[#ffe4d3]"
-                  : "border-[1.5px] border-gray-300 bg-white font-semibold text-gray-500 hover:border-main"
-              }`}
+              className="mt-2 grid"
+              style={{
+                gridTemplateColumns: `repeat(${mids.length}, 1fr)`,
+                marginInline: `calc(16px + (100% - 32px) / ${2 * (n - 1)})`,
+              }}
             >
-              {s.num}
-            </button>
-          ))}
+              {mids.map((s) => (
+                <div
+                  key={s.v}
+                  className={`break-words px-0.5 text-center text-[11px] leading-[14px] ${
+                    sel === s ? "font-semibold text-main" : "text-gray-500"
+                  }`}
+                >
+                  {s.text}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
