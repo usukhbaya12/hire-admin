@@ -867,13 +867,18 @@ export const sendEbarimt = async () => {
   }
 };
 
-// Хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS-ийн ерөнхий драфт.
-export const getMessageTemplates = async () => {
+// "Мэйлийн загвар": хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS драфт.
+const draftsFetch = async (path = "", method = "GET", body) => {
   const token = await getAuthToken();
   if (!token) return { token: false };
   try {
-    const res = await fetch(`${api}userService/templates`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await fetch(`${api}userService/templates${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
       cache: "no-store",
     }).then((d) => d.json());
     return { data: res.payload, message: res?.message, success: res.succeed };
@@ -883,21 +888,10 @@ export const getMessageTemplates = async () => {
   }
 };
 
-export const saveMessageTemplates = async (templates) => {
-  const token = await getAuthToken();
-  if (!token) return { token: false };
-  try {
-    const res = await fetch(`${api}userService/templates`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(templates),
-    }).then((d) => d.json());
-    return { data: res.payload, message: res?.message, success: res.succeed };
-  } catch (error) {
-    console.error(error);
-    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
-  }
-};
+export const listDrafts = async () => draftsFetch();
+export const createDraft = async (draft) => draftsFetch("", "POST", draft);
+export const updateDraft = async (id, draft) =>
+  draftsFetch(`/${id}`, "PATCH", draft);
+export const deleteDraft = async (id) => draftsFetch(`/${id}`, "DELETE");
+export const previewDraft = async (draft) =>
+  draftsFetch("/preview", "POST", draft);

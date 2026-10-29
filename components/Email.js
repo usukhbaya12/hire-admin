@@ -17,7 +17,6 @@ import { LetterBoldDuotone, MagniferBoldDuotone } from "solar-icons";
 import dayjs from "dayjs";
 import { getEmails, sendEmail } from "@/app/api/constant";
 import { customLocale } from "@/utils/values";
-import MessageTemplates from "./MessageTemplates";
 
 const typeMap = {
   10: "Ибаримт",
@@ -42,7 +41,6 @@ const statusColors = {
 
 const Email = () => {
   const [loading, setLoading] = useState(true);
-  const [isTemplatesVisible, setIsTemplatesVisible] = useState(false);
   const [emails, setEmails] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -261,10 +259,6 @@ const Email = () => {
   return (
     <ConfigProvider locale={mnMN}>
       {contextHolder}
-      <MessageTemplates
-        open={isTemplatesVisible}
-        onClose={() => setIsTemplatesVisible(false)}
-      />
       <div className="px-5 py-6">
         <div className="flex justify-between items-center mb-4">
           <div className="text-base font-bold flex items-center gap-2">
@@ -299,10 +293,6 @@ const Email = () => {
             <Button className="the-btn" onClick={handleManualSearch}>
               <MagniferBoldDuotone width={16} />
               Хайх
-            </Button>
-            <Button onClick={() => setIsTemplatesVisible(true)}>
-              <LetterBoldDuotone width={16} />
-              Мессежийн драфт
             </Button>
           </div>
         </div>

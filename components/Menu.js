@@ -10,6 +10,7 @@ import {
   FolderFavouriteBookmarkBoldDuotone,
   HandShakeBoldDuotone,
   LetterBoldDuotone,
+  LetterOpenedBoldDuotone,
   LightbulbBoltBoldDuotone,
   MoneyBagBoldDuotone,
   ChartSquareBoldDuotone,
@@ -73,6 +74,12 @@ const Menu = () => {
       key: "email",
       href: "/email",
       icon: <LetterBoldDuotone width={18} />,
+    },
+    {
+      name: "Мэйлийн загвар",
+      key: "templates",
+      href: "/templates",
+      icon: <LetterOpenedBoldDuotone width={18} />,
     },
     {
       name: "Холбогдох",
