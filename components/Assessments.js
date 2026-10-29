@@ -110,6 +110,7 @@ const statusOptions = [
   { value: String(STATUS.OPEN), label: "Нээлттэй" },
   { value: String(STATUS.ARCHIVED), label: "Архив" },
   { value: String(STATUS.FEATURED), label: "Онцлох" },
+  { value: String(ASSESSMENT_STATUS_ONLY), label: "Байгууллагын" },
 ];
 
 const sortOptions = [
@@ -157,6 +158,11 @@ function getStatusMeta(status) {
       return {
         label: "Онцлох",
         className: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+    case ASSESSMENT_STATUS_ONLY:
+      return {
+        label: "Байгууллагын",
+        className: "bg-sky-50 text-sky-700 border-sky-200",
       };
     default:
       return {
