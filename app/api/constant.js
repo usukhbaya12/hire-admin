@@ -866,3 +866,38 @@ export const sendEbarimt = async () => {
     };
   }
 };
+
+// Хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS-ийн ерөнхий драфт.
+export const getMessageTemplates = async () => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}userService/templates`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }).then((d) => d.json());
+    return { data: res.payload, message: res?.message, success: res.succeed };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
+  }
+};
+
+export const saveMessageTemplates = async (templates) => {
+  const token = await getAuthToken();
+  if (!token) return { token: false };
+  try {
+    const res = await fetch(`${api}userService/templates`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(templates),
+    }).then((d) => d.json());
+    return { data: res.payload, message: res?.message, success: res.succeed };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Сервертэй холбогдоход алдаа гарлаа." };
+  }
+};
