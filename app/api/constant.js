@@ -867,12 +867,12 @@ export const sendEbarimt = async () => {
   }
 };
 
-// "Мэйлийн загвар": хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS драфт.
-const draftsFetch = async (path = "", method = "GET", body) => {
+// userService: "Мэйлийн загвар" (урилга / сануулгын драфт), масс SMS.
+const serviceFetch = async (path = "", method = "GET", body) => {
   const token = await getAuthToken();
   if (!token) return { token: false };
   try {
-    const res = await fetch(`${api}userService/templates${path}`, {
+    const res = await fetch(`${api}userService${path}`, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -888,10 +888,13 @@ const draftsFetch = async (path = "", method = "GET", body) => {
   }
 };
 
-export const listDrafts = async () => draftsFetch();
-export const createDraft = async (draft) => draftsFetch("", "POST", draft);
+export const listDrafts = async () => serviceFetch("/templates");
+export const createDraft = async (draft) => serviceFetch("/templates", "POST", draft);
 export const updateDraft = async (id, draft) =>
-  draftsFetch(`/${id}`, "PATCH", draft);
-export const deleteDraft = async (id) => draftsFetch(`/${id}`, "DELETE");
+  serviceFetch(`/templates/${id}`, "PATCH", draft);
+export const deleteDraft = async (id) => serviceFetch(`/templates/${id}`, "DELETE");
 export const previewDraft = async (draft) =>
-  draftsFetch("/preview", "POST", draft);
+  serviceFetch("/templates/preview", "POST", draft);
+
+/** Масс SMS: { text, recipients: [{ phone, ...багана }], dryRun } — нэг удаад 50 хүртэл. */
+export const bulkSms = async (body) => serviceFetch("/sms", "POST", body);

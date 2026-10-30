@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { DropdownIcon, MenuIcon } from "./Icons";
 import { Divider } from "antd";
 import {
+  ChatRoundDotsBoldDuotone,
   FolderFavouriteBookmarkBoldDuotone,
   HandShakeBoldDuotone,
   LetterBoldDuotone,
@@ -80,6 +81,12 @@ const Menu = () => {
       key: "templates",
       href: "/templates",
       icon: <LetterOpenedBoldDuotone width={18} />,
+    },
+    {
+      name: "Масс SMS",
+      key: "sms",
+      href: "/sms",
+      icon: <ChatRoundDotsBoldDuotone width={18} />,
     },
     {
       name: "Холбогдох",
