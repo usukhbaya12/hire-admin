@@ -13,7 +13,7 @@ import {
   Segmented,
   message,
 } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import {
   ChatRoundDotsBoldDuotone,
@@ -77,8 +77,10 @@ const Stat = ({ label, value, tone = "text-slate-900" }) => (
 
 export default function BulkSms() {
   const [messageApi, contextHolder] = message.useMessage();
-  const [mode, setMode] = useState("paste");
-  const [numbers, setNumbers] = useState(""); // "Буулгах": мөр бүрт нэг дугаар
+  const [mode, setMode] = useState("manual");
+  const [list, setList] = useState([]); // "Нэг нэгээр": шалгасан 8 оронтой дугаарууд
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState("");
   const [sheet, setSheet] = useState(""); // Excel → TSV
   const [fileName, setFileName] = useState("");
   const [phoneCol, setPhoneCol] = useState();
@@ -98,9 +100,9 @@ export default function BulkSms() {
         ? parseSheet(sheet)
         : {
             columns: ["phone"],
-            rows: numbers.split("\n").filter(Boolean).map((phone) => ({ phone })),
+            rows: list.map((phone) => ({ phone })),
           },
-    [mode, numbers, sheet],
+    [mode, list, sheet],
   );
   const col = columns.includes(phoneCol)
     ? phoneCol
@@ -154,18 +156,20 @@ export default function BulkSms() {
     return false;
   };
 
-  // Хуулж буулгахад "+976 9911-2233, 88112233" → мөр бүрт цэвэр дугаар.
-  const onPasteNumbers = (e) => {
-    e.preventDefault();
-    const el = e.target;
-    const clean = e.clipboardData
-      .getData("text")
-      .split(/[\r\n,;\t]+/)
-      .map(normPhone)
-      .filter(Boolean)
-      .join("\n");
-    setNumbers(
-      numbers.slice(0, el.selectionStart) + clean + numbers.slice(el.selectionEnd),
+  // Enter / "Нэмэх" / жагсаалт буулгах ("+976 9911-2233, 88112233"):
+  // зөвхөн 8 оронтой, өмнө нэмэгдээгүй дугаарыг нэмнэ.
+  const addNumbers = (input) => {
+    const all = input.split(/[\r\n,;\t]+/).map(normPhone).filter(Boolean);
+    const bad = all.filter((p) => !isPhone(p));
+    const fresh = [...new Set(all)].filter((p) => isPhone(p) && !list.includes(p));
+    setList([...list, ...fresh]);
+    if (!bad.length) setDraft("");
+    setDraftError(
+      bad.length
+        ? `8 оронтой цифр байх ёстой: ${bad.slice(0, 5).join(", ")}${bad.length > 5 ? " …" : ""}`
+        : all.length > fresh.length
+          ? "Аль хэдийн нэмэгдсэн дугаар байна."
+          : "",
     );
   };
 
@@ -255,7 +259,7 @@ export default function BulkSms() {
               value={mode}
               onChange={setMode}
               options={[
-                { value: "paste", label: "Буулгах" },
+                { value: "manual", label: "Нэг нэгээр" },
                 { value: "excel", label: "Excel" },
               ]}
             />
@@ -285,24 +289,72 @@ export default function BulkSms() {
               </div>
             </Upload.Dragger>
           ) : (
-            <Input.TextArea
-              rows={9}
-              value={numbers}
-              inputMode="numeric"
-              // Зөвхөн цифр, мөр шилжүүлэлт.
-              onChange={(e) => setNumbers(e.target.value.replace(/[^\d\n]/g, ""))}
-              onPaste={onPasteNumbers}
-              className="font-mono text-[13px]"
-              placeholder={
-                "Мөр бүрт 8 оронтой нэг дугаар:\n99112233\n88112233\n\nХүн бүрт өөр утга ({link} г.м.) хэрэгтэй бол Excel горимыг ашиглана."
-              }
-            />
+            <>
+              <div className="flex gap-2">
+                <Input
+                  value={draft}
+                  inputMode="numeric"
+                  status={draftError ? "error" : undefined}
+                  aria-label="Утасны дугаар"
+                  placeholder="99112233 гээд Enter"
+                  className="font-mono"
+                  onChange={(e) => {
+                    setDraft(e.target.value.replace(/\D/g, "").slice(0, 8));
+                    setDraftError("");
+                  }}
+                  onPressEnter={() => addNumbers(draft)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    addNumbers(e.clipboardData.getData("text"));
+                  }}
+                />
+                <Button
+                  icon={<PlusOutlined />}
+                  disabled={!draft}
+                  onClick={() => addNumbers(draft)}
+                >
+                  Нэмэх
+                </Button>
+              </div>
+              <div className={`mt-1 text-xs ${draftError ? "text-red-500" : "text-slate-400"}`}>
+                {draftError ||
+                  "Жагсаалт хуулж буулгаж болно. Хүн бүрт өөр утга ({link} г.м.) хэрэгтэй бол Excel."}
+              </div>
+              <div className="mt-3 flex min-h-24 max-h-56 flex-wrap content-start gap-1.5 overflow-auto rounded-2xl border border-dashed border-slate-200 p-2">
+                {list.length ? (
+                  list.map((p) => (
+                    <Tag
+                      key={p}
+                      closable
+                      onClose={() => setList(list.filter((x) => x !== p))}
+                      className="m-0 font-mono"
+                    >
+                      {p}
+                    </Tag>
+                  ))
+                ) : (
+                  <span className="m-auto text-xs text-slate-400">
+                    Нэмсэн дугаар энд харагдана
+                  </span>
+                )}
+              </div>
+            </>
           )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-slate-500">
               <b className="text-slate-900">{recipients.length}</b> дугаар
               {dupes > 0 && ` · ${dupes} давхардсаныг хассан`}
+              {mode === "manual" && list.length > 0 && (
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  onClick={() => setList([])}
+                >
+                  Бүгдийг арилгах
+                </Button>
+              )}
             </span>
             {columns.length > 1 && (
               <span className="flex items-center gap-2">
