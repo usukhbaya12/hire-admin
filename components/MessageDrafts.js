@@ -95,6 +95,7 @@ const MessageDrafts = () => {
       subject: isEmail(type)
         ? s[type === "remindEmail" ? "remind" : "invite"] ?? ""
         : "",
+      button: "",
       body: d[type] ?? "",
       active: false,
     });
@@ -127,12 +128,13 @@ const MessageDrafts = () => {
       const res = await previewDraft({
         type: form.type,
         subject: form.subject,
+        button: form.button,
         body: form.body,
       });
       if (res?.success) setPreview(res.data);
     }, 400);
     return () => clearTimeout(t);
-  }, [form?.type, form?.subject, form?.body]);
+  }, [form?.type, form?.subject, form?.button, form?.body]);
 
   const insertVar = (v) => {
     const token = `{${v}}`;
@@ -165,6 +167,7 @@ const MessageDrafts = () => {
       name: form.name,
       type: form.type,
       subject: form.subject,
+      button: form.button,
       body: form.body,
       active: form.active,
     };
@@ -285,6 +288,13 @@ const MessageDrafts = () => {
                       value={form.subject ?? ""}
                       onChange={(e) => setField("subject", e.target.value)}
                     />
+                    <div className="text-gray-500 text-sm mb-1 mt-3">Товчны текст</div>
+                    <Input
+                      placeholder="🎯  Тест өгөх"
+                      maxLength={60}
+                      value={form.button ?? ""}
+                      onChange={(e) => setField("button", e.target.value)}
+                    />
                   </div>
                 )}
 
@@ -357,7 +367,7 @@ const MessageDrafts = () => {
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {email
-                      ? "{link} нь дарагдах холбоос болно. Доор нь \"Тест өгөх\" товч болон тестийн тухай мэдээлэл автоматаар нэмэгдэнэ."
+                      ? "{link} нь дарагдах холбоос болно. Доор нь тест өгөх товч (дээрх текстээр) болон тестийн тухай мэдээлэл автоматаар нэмэгдэнэ."
                       : "Кирилл үсгийг латинаар хөрвүүлж илгээнэ. 160 тэмдэгтээс хэтэрвэл тестийн нэрийг тайрна. {link} заавал байна."}
                   </div>
                 </div>

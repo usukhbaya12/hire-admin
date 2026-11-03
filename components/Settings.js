@@ -909,6 +909,16 @@ const Settings = ({
           <span>Шалгалт дуусмагц шалгуулагч өөрийн хариуг харах боломжтой</span>
         </div>
         <Divider />
+        <div className="text-base font-bold mt-4 mb-4">Санал асуулга</div>
+        <div className="flex items-center gap-2 mb-4">
+          <Switch
+            size="small"
+            checked={assessmentData?.data.showFeedback ?? true}
+            onChange={(checked) => handleFieldChange("showFeedback", checked)}
+          />
+          <span>Шалгалт дууссаны дараа сэтгэл ханамжийн санал асуух</span>
+        </div>
+        <Divider />
         <div className="text-base font-bold mt-4 mb-4">Тайлангийн төлбөр</div>
 
         <div className="flex items-center gap-2 mb-4">
