@@ -13,6 +13,7 @@ import {
   Spin,
   Empty,
   Tooltip,
+  Upload,
   message,
 } from "antd";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -28,7 +29,9 @@ import {
   updateDraft,
   deleteDraft,
   previewDraft,
+  imageUploader,
 } from "@/app/api/constant";
+import { getFileUrl } from "@/utils/fileUrl";
 
 const TYPES = [
   { value: "inviteEmail", label: "Урилга · И-мэйл" },
@@ -46,6 +49,17 @@ const VARS = {
   test: "Тестийн нэр",
   deadline: "Дуусах хугацаа",
   link: "Тестийн холбоос",
+};
+
+// Зөвхөн и-мэйлд: сервер загвартай блок болгон орлуулна (тусдаа мөрөнд байрлуулна).
+const EMAIL_VARS = {
+  button: "Тест өгөх товч",
+  testInfo: "Тестийн тухай (бүтэн хэсэг)",
+  description: "Тестийн тайлбар",
+  usage: "Тестийн хэрэглээ",
+  measure: "Хэмжих зүйлс",
+  advice: "Хариулах заавар",
+  account: "Шинэ хэрэглэгчийн нэвтрэх мэдээлэл",
 };
 
 // Хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS драфт (backend: userService/templates).
@@ -96,6 +110,7 @@ const MessageDrafts = () => {
         ? s[type === "remindEmail" ? "remind" : "invite"] ?? ""
         : "",
       button: "",
+      logo: null,
       body: d[type] ?? "",
       active: false,
     });
@@ -129,12 +144,13 @@ const MessageDrafts = () => {
         type: form.type,
         subject: form.subject,
         button: form.button,
+        logo: form.logo,
         body: form.body,
       });
       if (res?.success) setPreview(res.data);
     }, 400);
     return () => clearTimeout(t);
-  }, [form?.type, form?.subject, form?.button, form?.body]);
+  }, [form?.type, form?.subject, form?.button, form?.logo, form?.body]);
 
   const insertVar = (v) => {
     const token = `{${v}}`;
@@ -168,6 +184,7 @@ const MessageDrafts = () => {
       type: form.type,
       subject: form.subject,
       button: form.button,
+      logo: form.logo,
       body: form.body,
       active: form.active,
     };
@@ -181,6 +198,19 @@ const MessageDrafts = () => {
     }
     messageApi.success("Загвар хадгалагдлаа.");
     load(res.data?.id ?? form.id);
+  };
+
+  const uploadLogo = async ({ file, onSuccess, onError }) => {
+    const fd = new FormData();
+    fd.append("files", file);
+    const res = await imageUploader(fd, "email");
+    if (!res?.[0]) {
+      messageApi.error("Лого оруулахад алдаа гарлаа.");
+      onError?.(new Error("upload"));
+      return;
+    }
+    setField("logo", res[0]);
+    onSuccess?.(res[0]);
   };
 
   const handleDelete = async () => {
@@ -209,7 +239,9 @@ const MessageDrafts = () => {
   );
 
   const varMenu = {
-    items: Object.entries(VARS).map(([v, name]) => ({
+    items: Object.entries(
+      isEmail(form?.type) ? { ...VARS, ...EMAIL_VARS } : VARS,
+    ).map(([v, name]) => ({
       key: v,
       label: `${name}  {${v}}`,
     })),
@@ -295,6 +327,34 @@ const MessageDrafts = () => {
                       value={form.button ?? ""}
                       onChange={(e) => setField("button", e.target.value)}
                     />
+                    <div className="text-gray-500 text-sm mb-1 mt-3">Лого</div>
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={
+                          form.logo
+                            ? getFileUrl(form.logo)
+                            : "https://raw.githubusercontent.com/usukhbaya12/images/refs/heads/main/hire-2-white.png"
+                        }
+                        alt="Лого"
+                        className="h-9 max-w-[160px] object-contain bg-[#ff5000] rounded-lg px-3 py-2"
+                      />
+                      <Upload
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        showUploadList={false}
+                        customRequest={uploadLogo}
+                      >
+                        <Button size="small">Лого солих</Button>
+                      </Upload>
+                      {form.logo && (
+                        <Button
+                          size="small"
+                          type="text"
+                          onClick={() => setField("logo", null)}
+                        >
+                          Анхны лого
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -367,7 +427,7 @@ const MessageDrafts = () => {
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {email
-                      ? "{link} нь дарагдах холбоос болно. Доор нь тест өгөх товч (дээрх текстээр) болон тестийн тухай мэдээлэл автоматаар нэмэгдэнэ."
+                      ? "Лого, footer-оос бусад бүх текст энд. Хувьсагчаар {button} товч, {testInfo} тестийн тухай хэсэг, {description} тайлбар гэх мэтийг хүссэн газраа (тусдаа мөрөнд) байрлуулна. {link} нь дарагдах холбоос болно."
                       : "Кирилл үсгийг латинаар хөрвүүлж илгээнэ. 160 тэмдэгтээс хэтэрвэл тестийн нэрийг тайрна. {link} заавал байна."}
                   </div>
                 </div>
