@@ -16,7 +16,12 @@ import {
   Upload,
   message,
 } from "antd";
-import { useEditor, EditorContent } from "@tiptap/react";
+import {
+  useEditor,
+  EditorContent,
+  Node as TNode,
+  mergeAttributes,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
@@ -51,16 +56,75 @@ const VARS = {
   link: "Тестийн холбоос",
 };
 
-// Зөвхөн и-мэйлд: сервер загвартай блок болгон орлуулна (тусдаа мөрөнд байрлуулна).
-const EMAIL_VARS = {
+// Зөвхөн и-мэйлд. Блокуудыг сервер загвартай хэсэг болгоно; засварлагчид бүтэн мөрөөрөө зөөгдөнө.
+const EMAIL_INLINE = { email: "Нэвтрэх и-мэйл", password: "Нууц үг (шинэ хэрэглэгч)" };
+const BLOCK_VARS = {
+  account: "Шинэ хэрэглэгчийн хэсэг · эхлэл (зөвхөн шинэ хэрэглэгчид харагдана)",
+  "/account": "Шинэ хэрэглэгчийн хэсэг · төгсгөл",
   button: "Тест өгөх товч",
   testInfo: "Тестийн тухай (бүтэн хэсэг)",
   description: "Тестийн тайлбар",
   usage: "Тестийн хэрэглээ",
   measure: "Хэмжих зүйлс",
   advice: "Хариулах заавар",
-  account: "Шинэ хэрэглэгчийн нэвтрэх мэдээлэл",
 };
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+// Хувьсагч = салдаггүй chip: давхар товшиход "{" "}" хагас сонгогдож эвдрэхгүй, чирж зөөнө.
+// Хадгалахад сервер {x} болгож задлана (unwrapVars).
+const varAttrs = () => ({
+  name: {
+    default: null,
+    parseHTML: (el) => el.getAttribute("data-var"),
+    renderHTML: (a) => ({ "data-var": a.name }),
+  },
+});
+const VarInline = TNode.create({
+  name: "varInline",
+  group: "inline",
+  inline: true,
+  atom: true,
+  draggable: true,
+  addAttributes: varAttrs,
+  parseHTML: () => [{ tag: "span[data-var]" }],
+  renderHTML: ({ node, HTMLAttributes }) => [
+    "span",
+    mergeAttributes(HTMLAttributes, {
+      class: "rounded bg-orange-100 text-[#ff5000] px-1 font-mono text-xs cursor-grab",
+    }),
+    `{${node.attrs.name}}`,
+  ],
+});
+const VarBlock = TNode.create({
+  name: "varBlock",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes: varAttrs,
+  parseHTML: () => [{ tag: "div[data-var]" }],
+  renderHTML: ({ node, HTMLAttributes }) => [
+    "div",
+    mergeAttributes(HTMLAttributes, {
+      class:
+        "my-2 rounded-lg border border-dashed border-[#ff5000] bg-orange-50 text-[#ff5000] text-center py-2 font-mono text-xs cursor-grab",
+    }),
+    `{${node.attrs.name}} · ${BLOCK_VARS[node.attrs.name] ?? ""}`,
+  ],
+});
+
+// Хадгалсан {x} текстийг chip болгоно (дахин дуудахад давхар ороохгүй).
+const wrapVars = (html) =>
+  html
+    .replace(/<(span|div)\b[^>]*\bdata-var="([\w/]+)"[^>]*>[\s\S]*?<\/\1>/g, "{$2}")
+    .replace(/(<p>\s*)?\{(\/?\w+)\}(\s*<\/p>)?/g, (m, open = "", k, close = "") =>
+      own(BLOCK_VARS, k)
+        ? open && close
+          ? `<div data-var="${k}"></div>`
+          : `${open}<div data-var="${k}"></div>${close}`
+        : own(VARS, k) || own(EMAIL_INLINE, k)
+          ? `${open}<span data-var="${k}"></span>${close}`
+          : m,
+    );
 
 // Хэрэглэгч рүү явах урилга / сануулгын мэйл, SMS драфт (backend: userService/templates).
 const MessageDrafts = () => {
@@ -83,6 +147,8 @@ const MessageDrafts = () => {
       Underline,
       LinkExt.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Мессежийн текст..." }),
+      VarInline,
+      VarBlock,
     ],
     editorProps: {
       attributes: {
@@ -98,7 +164,8 @@ const MessageDrafts = () => {
   const select = (draft) => {
     setForm(draft);
     setShowSource(false);
-    if (isEmail(draft.type)) editor?.commands.setContent(draft.body || "");
+    if (isEmail(draft.type))
+      editor?.commands.setContent(wrapVars(draft.body || ""));
   };
 
   const newDraft = (type = "inviteEmail", d = defaults, s = defaultSubjects) =>
@@ -155,7 +222,16 @@ const MessageDrafts = () => {
   const insertVar = (v) => {
     const token = `{${v}}`;
     if (isEmail(form.type)) {
-      editor?.chain().focus().insertContent(token).run();
+      const node = (name) => ({
+        type: own(BLOCK_VARS, name) ? "varBlock" : "varInline",
+        attrs: { name },
+      });
+      // Ногоон хэсэг: эхлэл, хоосон мөр, төгсгөл — дунд нь текстээ бичнэ.
+      const content =
+        v === "account"
+          ? [node("account"), { type: "paragraph" }, node("/account")]
+          : node(v);
+      editor?.chain().focus().insertContent(content).run();
       return;
     }
     const el = smsRef.current?.resizableTextArea?.textArea;
@@ -165,7 +241,7 @@ const MessageDrafts = () => {
   };
 
   const toggleSource = () => {
-    if (showSource) editor?.commands.setContent(form.body || "");
+    if (showSource) editor?.commands.setContent(wrapVars(form.body || ""));
     setShowSource(!showSource);
   };
 
@@ -240,8 +316,18 @@ const MessageDrafts = () => {
 
   const varMenu = {
     items: Object.entries(
-      isEmail(form?.type) ? { ...VARS, ...EMAIL_VARS } : VARS,
-    ).map(([v, name]) => ({
+      isEmail(form?.type)
+        ? {
+            ...VARS,
+            ...EMAIL_INLINE,
+            ...BLOCK_VARS,
+            account: "Шинэ хэрэглэгчийн хэсэг (эхлэл…төгсгөл)",
+            "/account": undefined,
+          }
+        : VARS,
+    )
+      .filter(([, name]) => name)
+      .map(([v, name]) => ({
       key: v,
       label: `${name}  {${v}}`,
     })),
@@ -427,7 +513,7 @@ const MessageDrafts = () => {
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {email
-                      ? "Лого, footer-оос бусад бүх текст энд. Хувьсагчаар {button} товч, {testInfo} тестийн тухай хэсэг, {description} тайлбар гэх мэтийг хүссэн газраа (тусдаа мөрөнд) байрлуулна. {link} нь дарагдах холбоос болно."
+                      ? "Лого, footer-оос бусад бүх текст энд. Улбар шар блокуудыг ({button}, {testInfo} …) чирж эсвэл cut/paste-аар зөөнө. {account} … {/account} хоорондох текст зөвхөн шинэ хэрэглэгчид ногоон хайрцагт харагдана. {link} нь дарагдах холбоос болно."
                       : "Кирилл үсгийг латинаар хөрвүүлж илгээнэ. 160 тэмдэгтээс хэтэрвэл тестийн нэрийг тайрна. {link} заавал байна."}
                   </div>
                 </div>
